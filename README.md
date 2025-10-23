@@ -1,21 +1,21 @@
-# 🧠 LeetHelper
+#  LeetHelper
 
 A modular CLI tool for tracking, analyzing, and reflecting on LeetCode practice sessions. Powered by Python, built for growth.
 
 ---
 
-## 🚀 Features
+##  Features
 
-- 📁 Add problems with category, difficulty, status, and link  
-- 📜 Record multiple attempts with:
+  - Add problems with category, difficulty, status, and link  
+  - Record multiple attempts with:
   - Technique used (e.g. brute force, DP)
   - Time spent per attempt
   - Timestamped reflection notes  
-- 🧮 View average, shortest, and longest solve time per problem  
-- 🔍 Search problems by approach used  
-- ⚡ Identify fastest-solved hard problems  
-- 🐢 Highlight most time-consuming categories  
-- ⏱️ Monitor performance and pacing over time
+  - View average, shortest, and longest solve time per problem  
+  - Search problems by approach used  
+  - Identify fastest-solved hard problems  
+  - Highlight most time-consuming categories  
+  - Monitor performance and pacing over time
 
 ---
 
@@ -32,7 +32,7 @@ PyProject/
 
 ---
 
-## ▶️ How to Run
+##  How to Run
 
 1. Open a terminal in the `PyProject` directory  
 2. Run the app:
@@ -40,7 +40,7 @@ PyProject/
 
 ---
 
-## 🧠 Note System
+##  Note System
 
 Each problem supports multiple note entries per attempt, including:
 
@@ -52,7 +52,7 @@ Each problem supports multiple note entries per attempt, including:
 
 ---
 
-## 📈 Analytics
+##  Analytics
 
 - **View time stats** per problem  
 - **Search by approach keyword**  
@@ -63,7 +63,7 @@ Perfect for competitive prep, spaced repetition, and deep reflection.
 
 ---
 
-## 🔮 Future Ideas
+##  Future Ideas
 
 - Visualize performance with `matplotlib`
 - Add spaced repetition or revisit tracking
@@ -71,12 +71,14 @@ Perfect for competitive prep, spaced repetition, and deep reflection.
 
 ---
 
-## 💾 Getting Started
+##  Getting Started
 
 Make sure Python 3.8+ is installed  
 (Optional) Install `matplotlib` for plotting:
 ```bash
 pip install matplotlib
 
-🧱 Why I Built This
+## Why I Built This
+-I build this to help me keep track of my leetcode progress
+
 
