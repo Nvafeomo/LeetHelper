@@ -20,6 +20,7 @@ A modular CLI tool for tracking, analyzing, and reflecting on LeetCode practice 
 ---
 
 ##  Folder Structure
+```text
 PyProject/
 ├── main.py
 ├── problem_tracker.py
@@ -29,7 +30,7 @@ PyProject/
 │   └── plot.py         # (Optional for visual features)
 ├── data/
 │   └── problems.json
-
+```
 ---
 
 ##  How to Run
@@ -80,6 +81,7 @@ pip install matplotlib
 
 ## Why I Built This
 -I build this to help me keep track of my leetcode progress
+
 
 
 
