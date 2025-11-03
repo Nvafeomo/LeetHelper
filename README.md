@@ -78,9 +78,10 @@ Make sure Python 3.8+ is installed
 (Optional) Install `matplotlib` for plotting:
 ```bash
 pip install matplotlib
-
+```
 ## Why I Built This
 -I build this to help me keep track of my leetcode progress
+
 
 
 
