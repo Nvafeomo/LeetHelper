@@ -66,10 +66,10 @@ Perfect for competitive prep, spaced repetition, and deep reflection.
 
 ##  Future Ideas
 
+- Make a GUI or Website frontend
 - Visualize performance with `matplotlib`
 - Add spaced repetition or revisit tracking
 - Export to CSV or Markdown for publishing
-
 ---
 
 ##  Getting Started
@@ -81,6 +81,7 @@ pip install matplotlib
 ```
 ## Why I Built This
 -I build this to help me keep track of my leetcode progress
+
 
 
 
