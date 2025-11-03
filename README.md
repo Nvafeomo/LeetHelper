@@ -1,4 +1,4 @@
-#  LeetHelper
+#  LeetTracker
 
 A modular CLI tool for tracking, analyzing, and reflecting on LeetCode practice sessions. Powered by Python, built for growth.
 
@@ -81,6 +81,7 @@ pip install matplotlib
 ```
 ## Why I Built This
 -I build this to help me keep track of my leetcode progress
+
 
 
 
