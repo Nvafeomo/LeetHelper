@@ -1,6 +1,6 @@
 #  LeetTracker
 
-A modular CLI tool for tracking, analyzing, and reflecting on LeetCode practice sessions. Powered by Python, built for growth.
+The program is no longer just a CLI tool but are very basic web application that stores leetcode problem feedback
 
 ---
 
@@ -16,7 +16,7 @@ A modular CLI tool for tracking, analyzing, and reflecting on LeetCode practice 
   - Identify fastest-solved hard problems  
   - Highlight most time-consuming categories  
   - Monitor performance and pacing over time
-
+  - Cleanly display information obtained from user.
 ---
 
 ##  Folder Structure
@@ -77,19 +77,14 @@ Perfect for competitive prep, spaced repetition, and deep reflection.
 ---
 
 ##  Future Ideas
-
-- Make a GUI or Website frontend
+- Use webextension/API or something of that nature to collect info directly from leetcode page(time spent, and problem info)
 - Visualize performance with `matplotlib`
 - Add spaced repetition or revisit tracking
 - Export to CSV or Markdown for publishing
+- Polish webpage and prompt for info from user but make more of the prompts optional
 ---
 
-##  Getting Started
 
-Make sure Python 3.8+ is installed  
-(Optional) Install `matplotlib` for plotting:
-```bash
-pip install matplotlib
 ```
 ## Why I Built This
--I built this to help me keep track of my leetcode progress and hold myself accountable
+-I originally built the CLI to help moniter leetcode progress and brush up my python skills because i hadn't used it in a while. I've been planning to create a front end in the form of a GUI or webpage to make it more resume appropriate. I implemented a very basic webpage using Flask, HTML, and CSS.
