@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LeetTracker</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <h1>LeetTracker</h1>
+      <p class="tagline">Track your LeetCode progress</p>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="problems">Problems</button>
+      <button class="tab" data-tab="add">Add Problem</button>
+      <button class="tab" data-tab="stats">Stats</button>
+    </nav>
+
+    <main class="content">
+      <!-- Problems list -->
+      <section id="problems" class="panel active">
+        <div class="panel-header">
+          <input type="text" id="searchInput" placeholder="Search by approach (e.g. DP, greedy)..." class="search-input">
+          <button id="refreshBtn" class="btn btn-secondary">Refresh</button>
+        </div>
+        <div id="problemsList" class="problems-list"></div>
+      </section>
+
+      <!-- Add problem form -->
+      <section id="add" class="panel">
+        <form id="addForm" class="form">
+          <h2>Add New Problem</h2>
+          <div class="form-row">
+            <input name="title" placeholder="Title" required>
+            <input name="category" placeholder="Category (e.g. Array, DP)" required>
+          </div>
+          <div class="form-row">
+            <select name="difficulty" required>
+              <option value="">Difficulty</option>
+              <option value="Easy">Easy</option>
+              <option value="Medium">Medium</option>
+              <option value="Hard">Hard</option>
+            </select>
+            <select name="status">
+              <option value="Solved">Solved</option>
+              <option value="Unsolved">Unsolved</option>
+            </select>
+          </div>
+          <input name="link" type="url" placeholder="LeetCode link" required>
+          <hr>
+          <h3>First Attempt</h3>
+          <input name="attempt" placeholder="Attempt number" value="1" required>
+          <input name="approach" placeholder="Approach used (e.g. Two pointers)" required>
+          <textarea name="reflection" placeholder="Reflection notes" rows="3"></textarea>
+          <input name="time_spent" placeholder="Time spent (e.g. 30 minutes)" required>
+          <button type="submit" class="btn btn-primary">Add Problem</button>
+        </form>
+      </section>
+
+      <!-- Stats -->
+      <section id="stats" class="panel">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h3>Fastest Hard Problems</h3>
+            <ul id="fastestHard"></ul>
+          </div>
+          <div class="stat-card">
+            <h3>Most Time-Consuming Categories</h3>
+            <ul id="slowestCategories"></ul>
+          </div>
+        </div>
+        <div class="stat-card full-width">
+          <h3>Time Stats for Problem</h3>
+          <div class="inline-form">
+            <input type="text" id="statsProblemTitle" placeholder="Enter problem title">
+            <button id="loadStatsBtn" class="btn btn-secondary">Load Stats</button>
+          </div>
+          <div id="timeStats" class="time-stats"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Problem detail modal -->
+  <div id="problemModal" class="modal">
+    <div class="modal-content">
+      <button class="modal-close">&times;</button>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.log
+.env
+.vscode/
+.DS_Store
+data/problems.json
+# Ignore Python cache files
+__pycache__/
