@@ -1,6 +1,6 @@
 #  LeetTracker
 
-The program is no longer just a CLI tool but are very basic web application that stores leetcode problem feedback
+The program is no longer just a CLI tool but are basic web application that stores leetcode problem feedback
 
 ---
 
@@ -33,7 +33,7 @@ LeetTracker/
 ├── utils/
 │   ├── storage.py
 │   ├── time_parse.py
-│   └── plot.py         # (Optional for visual features)
+│   └── plot.py         # (Will be added soon for plotting feature)
 ├── data/
 │   └── problems.json
 ```
