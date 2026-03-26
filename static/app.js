@@ -1,5 +1,14 @@
 const API = '/api';
 
+const state = {
+  offset: 0,
+  limit: 75,
+  q: '',
+  sort: 'id',
+  order: 'asc',
+  tag: '',
+};
+
 function showToast(message, type = 'success') {
   const toast = document.createElement('div');
   toast.className = `toast ${type} show`;
@@ -21,6 +30,13 @@ async function fetchJson(url, options = {}) {
   return data;
 }
 
+function escapeHtml(s) {
+  if (s == null) return '';
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
 // Tabs
 document.querySelectorAll('.tab').forEach((tab) => {
   tab.addEventListener('click', () => {
@@ -28,187 +44,210 @@ document.querySelectorAll('.tab').forEach((tab) => {
     document.querySelectorAll('.panel').forEach((p) => p.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById(tab.dataset.tab).classList.add('active');
-    if (tab.dataset.tab === 'problems') loadProblems();
+    if (tab.dataset.tab === 'catalog') loadCatalog();
     if (tab.dataset.tab === 'stats') loadStats();
   });
 });
 
-// Load problems
-async function loadProblems(searchQuery = '') {
-  const list = document.getElementById('problemsList');
+function buildCatalogQuery() {
+  const params = new URLSearchParams({
+    limit: String(state.limit),
+    offset: String(state.offset),
+    sort: state.sort,
+    order: state.order,
+  });
+  if (state.q) params.set('q', state.q);
+  if (state.tag) params.set('tag', state.tag);
+  return params.toString();
+}
+
+async function loadCatalogTags() {
+  const tagSelect = document.getElementById('tagFilter');
+  const hint = document.getElementById('tagHint');
   try {
-    let problems;
-    if (searchQuery) {
-      problems = await fetchJson(`${API}/search?q=${encodeURIComponent(searchQuery)}`);
+    const tags = await fetchJson(`${API}/catalog/tags`);
+    tagSelect.innerHTML = '<option value="">All topics</option>';
+    tags.forEach((t) => {
+      const opt = document.createElement('option');
+      opt.value = t;
+      opt.textContent = t;
+      tagSelect.appendChild(opt);
+    });
+    tagSelect.value = state.tag;
+    if (tags.length === 0) {
+      hint.textContent =
+        'No topic tags yet. Populate data/problem_topics.json as { "problem-slug": ["Array", "Hash Table"] } to enable topic filters and stats.';
     } else {
-      problems = await fetchJson(`${API}/problems`);
+      hint.textContent = '';
     }
-    if (problems.length === 0) {
-      list.innerHTML = '<div class="empty-state">No problems found. Add one to get started!</div>';
-      return;
-    }
-    list.innerHTML = problems.map((p) => {
-      const diff = (p.difficulty || '').toLowerCase();
-      const diffClass = diff === 'easy' || diff === 'medium' || diff === 'hard' ? diff : '';
-      return `
-        <div class="problem-card" data-title="${escapeHtml(p.title)}">
-          <div class="title">${escapeHtml(p.title)}</div>
-          <div class="meta">
-            <span class="difficulty ${diffClass}">${escapeHtml(p.difficulty)}</span>
-            <span>${escapeHtml(p.category)}</span>
-            <span>${(p.notes || []).length} note(s)</span>
-          </div>
-        </div>
-      `;
-    }).join('');
-    list.querySelectorAll('.problem-card').forEach((card) => {
-      card.addEventListener('click', () => openProblemModal(card.dataset.title));
-    });
   } catch (e) {
-    list.innerHTML = `<div class="empty-state">Error: ${e.message}</div>`;
+    hint.textContent = '';
   }
 }
 
-function escapeHtml(s) {
-  if (!s) return '';
-  const div = document.createElement('div');
-  div.textContent = s;
-  return div.innerHTML;
-}
-
-// Search
-let searchTimeout;
-document.getElementById('searchInput').addEventListener('input', (e) => {
-  clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(() => loadProblems(e.target.value.trim()), 300);
-});
-
-document.getElementById('refreshBtn').addEventListener('click', () => {
-  document.getElementById('searchInput').value = '';
-  loadProblems();
-});
-
-// Add problem form
-document.getElementById('addForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const form = e.target;
-  const data = {
-    title: form.title.value.trim(),
-    category: form.category.value.trim(),
-    difficulty: form.difficulty.value,
-    status: form.status.value,
-    link: form.link.value.trim(),
-    attempt: form.attempt.value.trim(),
-    approach: form.approach.value.trim(),
-    reflection: form.reflection.value.trim(),
-    time_spent: form.time_spent.value.trim(),
-  };
+async function loadCatalog() {
+  const tbody = document.getElementById('catalogBody');
+  const pag = document.getElementById('catalogPagination');
   try {
-    await fetchJson(`${API}/problems`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    showToast('Problem added!');
-    form.reset();
-    form.attempt.value = '1';
-    document.querySelector('[data-tab="problems"]').click();
-    loadProblems();
-  } catch (err) {
-    showToast(err.message, 'error');
+    const data = await fetchJson(`${API}/catalog?${buildCatalogQuery()}`);
+    const items = data.items || [];
+    if (items.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="empty-cell">No problems match.</td></tr>';
+    } else {
+      tbody.innerHTML = items
+        .map((p) => {
+          const diff = (p.difficulty || '').toLowerCase();
+          const diffClass =
+            diff === 'easy' || diff === 'medium' || diff === 'hard' ? diff : '';
+          const tags = (p.tags || []).slice(0, 4).map((t) => `<span class="tag-chip">${escapeHtml(t)}</span>`).join(' ');
+          const paid = p.paid_only ? ' <span class="badge-paid">Premium</span>' : '';
+          return `
+            <tr class="catalog-row" data-id="${p.id}" tabindex="0">
+              <td class="mono">${p.id}</td>
+              <td class="title-cell">${escapeHtml(p.title)}${paid}</td>
+              <td><span class="difficulty ${diffClass}">${escapeHtml(p.difficulty)}</span></td>
+              <td class="tags-cell">${tags || '<span class="text-muted">—</span>'}</td>
+            </tr>`;
+        })
+        .join('');
+      tbody.querySelectorAll('.catalog-row').forEach((row) => {
+        const id = row.dataset.id;
+        row.addEventListener('click', () => openProblemModal(id));
+        row.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter' || ev.key === ' ') {
+            ev.preventDefault();
+            openProblemModal(id);
+          }
+        });
+      });
+    }
+    const total = data.total ?? 0;
+    const end = Math.min(state.offset + state.limit, total);
+    const prevDisabled = state.offset <= 0;
+    const nextDisabled = state.offset + state.limit >= total;
+    pag.innerHTML = `
+      <span class="page-info">${total ? state.offset + 1 : 0}–${end} of ${total}</span>
+      <button type="button" class="btn btn-secondary" id="prevPage" ${prevDisabled ? 'disabled' : ''}>Previous</button>
+      <button type="button" class="btn btn-secondary" id="nextPage" ${nextDisabled ? 'disabled' : ''}>Next</button>
+    `;
+    const prev = document.getElementById('prevPage');
+    const next = document.getElementById('nextPage');
+    if (prev && !prevDisabled) prev.onclick = () => { state.offset = Math.max(0, state.offset - state.limit); loadCatalog(); };
+    if (next && !nextDisabled) next.onclick = () => { state.offset = state.offset + state.limit; loadCatalog(); };
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="4" class="empty-cell">Error: ${escapeHtml(e.message)}</td></tr>`;
+    pag.innerHTML = '';
   }
+}
+
+let searchDebounce;
+document.getElementById('catalogSearch').addEventListener('input', (e) => {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => {
+    state.q = e.target.value.trim();
+    state.offset = 0;
+    loadCatalog();
+  }, 300);
 });
 
-// Problem modal
-async function openProblemModal(title) {
+['sortBy', 'sortOrder', 'tagFilter'].forEach((id) => {
+  document.getElementById(id).addEventListener('change', (e) => {
+    if (id === 'sortBy') state.sort = e.target.value;
+    if (id === 'sortOrder') state.order = e.target.value;
+    if (id === 'tagFilter') state.tag = e.target.value;
+    state.offset = 0;
+    loadCatalog();
+  });
+});
+
+async function openProblemModal(problemId) {
   const modal = document.getElementById('problemModal');
   const body = document.getElementById('modalBody');
-  const problems = await fetchJson(`${API}/problems`);
-  const p = problems.find((x) => x.title.toLowerCase() === title.toLowerCase());
-  if (!p) {
-    body.innerHTML = '<p>Problem not found.</p>';
-    modal.classList.add('active');
-    return;
-  }
-  const notes = p.notes || [];
-  body.innerHTML = `
-    <h2>${escapeHtml(p.title)}</h2>
-    <div class="meta">
-      <span class="difficulty ${(p.difficulty || '').toLowerCase()}">${escapeHtml(p.difficulty)}</span>
-      · ${escapeHtml(p.category)} · ${escapeHtml(p.status)}
-    </div>
-    ${p.link ? `<a href="${escapeHtml(p.link)}" target="_blank" rel="noopener">View on LeetCode</a>` : ''}
-    <div class="notes-section">
-      <h4>Reflection Notes</h4>
-      ${notes.length === 0 ? '<p class="text-muted">No notes yet.</p>' : ''}
-      ${notes.map((n) => `
-        <div class="note-item" data-attempt="${escapeHtml(String(n.attempt))}">
-          <div class="note-meta">Attempt ${escapeHtml(String(n.attempt))} · ${escapeHtml(n.timestamp || '')}</div>
-          <div><strong>${escapeHtml(n.approach || '')}</strong></div>
-          <div>${escapeHtml(n.reflection || '')}</div>
-          <div>Time: ${escapeHtml(n.time_spent || '')}</div>
-          <button class="btn btn-danger delete-note-btn" data-attempt="${escapeHtml(String(n.attempt))}">Delete note</button>
-        </div>
-      `).join('')}
-    </div>
-    <div class="add-note-form">
-      <h4>Add Note</h4>
-      <input type="text" name="attempt" placeholder="Attempt number" value="${notes.length + 1}">
-      <input type="text" name="approach" placeholder="Approach used">
-      <textarea name="reflection" placeholder="Reflection" rows="2"></textarea>
-      <input type="text" name="time_spent" placeholder="Time spent (e.g. 30 minutes)">
-      <button type="button" class="btn btn-primary add-note-btn">Add Note</button>
-    </div>
-    <div style="margin-top:1rem">
-      <button class="btn btn-danger delete-problem-btn">Delete Problem</button>
-    </div>
-  `;
-  body.querySelectorAll('.delete-note-btn').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      if (!confirm('Delete this note?')) return;
+  const id = String(problemId);
+  try {
+    const p = await fetchJson(`${API}/catalog/${id}`);
+    const attempts = p.attempts || [];
+    const diff = (p.difficulty || '').toLowerCase();
+    const diffClass = diff === 'easy' || diff === 'medium' || diff === 'hard' ? diff : '';
+    const tags = (p.tags || []).map((t) => `<span class="tag-chip">${escapeHtml(t)}</span>`).join(' ');
+    body.innerHTML = `
+      <h2 class="modal-title">${escapeHtml(p.title)}</h2>
+      <div class="meta">
+        <span class="mono">#${p.id}</span>
+        <span class="difficulty ${diffClass}">${escapeHtml(p.difficulty)}</span>
+        ${p.paid_only ? '<span class="badge-paid">Premium</span>' : ''}
+      </div>
+      ${tags ? `<div class="modal-tags">${tags}</div>` : ''}
+      ${p.link ? `<p><a href="${escapeHtml(p.link)}" target="_blank" rel="noopener noreferrer">Open on LeetCode</a></p>` : ''}
+      <div class="notes-section">
+        <h4>Attempts</h4>
+        ${attempts.length === 0 ? '<p class="text-muted">No attempts logged yet.</p>' : ''}
+        ${attempts.map((n) => `
+          <div class="note-item" data-attempt="${escapeHtml(String(n.attempt))}">
+            <div class="note-meta">Attempt ${escapeHtml(String(n.attempt))} · ${escapeHtml(n.timestamp || '')}</div>
+            <div><strong>${escapeHtml(n.approach || '')}</strong> · ${n.solved ? 'Solved' : 'Not solved'}</div>
+            <div>${escapeHtml(n.reflection || '')}</div>
+            <div>Time: ${escapeHtml(n.time_spent || '')}</div>
+            <button type="button" class="btn btn-danger delete-note-btn" data-attempt="${escapeHtml(String(n.attempt))}">Delete attempt</button>
+          </div>
+        `).join('')}
+      </div>
+      <div class="add-note-form">
+        <h4>Log attempt</h4>
+        <input type="text" name="time_spent" placeholder="Time spent (e.g. 30 minutes)" required>
+        <input type="text" name="approach" placeholder="Approach used" required>
+        <label class="checkbox-row">
+          <input type="checkbox" name="solved"> Solved
+        </label>
+        <textarea name="reflection" placeholder="Reflection (optional)" rows="3"></textarea>
+        <button type="button" class="btn btn-primary add-note-btn">Save attempt</button>
+      </div>
+    `;
+    body.querySelectorAll('.delete-note-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this attempt?')) return;
+        try {
+          await fetchJson(`${API}/catalog/${id}/attempts/${encodeURIComponent(btn.dataset.attempt)}`, {
+            method: 'DELETE',
+          });
+          showToast('Attempt deleted');
+          openProblemModal(id);
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      });
+    });
+    body.querySelector('.add-note-btn').addEventListener('click', async () => {
+      const form = body.querySelector('.add-note-form');
+      const timeSpent = form.querySelector('[name="time_spent"]').value.trim();
+      const approach = form.querySelector('[name="approach"]').value.trim();
+      const reflection = form.querySelector('[name="reflection"]').value.trim();
+      const solved = form.querySelector('[name="solved"]').checked;
+      if (!timeSpent || !approach) {
+        showToast('Time spent and approach are required', 'error');
+        return;
+      }
       try {
-        await fetchJson(`${API}/problems/${encodeURIComponent(p.title)}/notes/${encodeURIComponent(btn.dataset.attempt)}`, { method: 'DELETE' });
-        showToast('Note deleted');
-        openProblemModal(p.title);
+        await fetchJson(`${API}/catalog/${id}/attempts`, {
+          method: 'POST',
+          body: JSON.stringify({
+            time_spent: timeSpent,
+            approach,
+            reflection,
+            solved,
+          }),
+        });
+        showToast('Attempt saved');
+        openProblemModal(id);
       } catch (err) {
         showToast(err.message, 'error');
       }
     });
-  });
-  body.querySelector('.add-note-btn').addEventListener('click', async () => {
-    const form = body.querySelector('.add-note-form');
-    const note = {
-      attempt: form.querySelector('[name="attempt"]').value.trim(),
-      approach: form.querySelector('[name="approach"]').value.trim(),
-      reflection: form.querySelector('[name="reflection"]').value.trim(),
-      time_spent: form.querySelector('[name="time_spent"]').value.trim(),
-    };
-    if (!note.attempt || !note.approach || !note.time_spent) {
-      showToast('Fill in attempt, approach, and time spent', 'error');
-      return;
-    }
-    try {
-      await fetchJson(`${API}/problems/${encodeURIComponent(p.title)}/notes`, {
-        method: 'POST',
-        body: JSON.stringify(note),
-      });
-      showToast('Note added!');
-      openProblemModal(p.title);
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
-  });
-  body.querySelector('.delete-problem-btn').addEventListener('click', async () => {
-    if (!confirm(`Delete "${p.title}"?`)) return;
-    try {
-      await fetchJson(`${API}/problems/${encodeURIComponent(p.title)}`, { method: 'DELETE' });
-      showToast('Problem deleted');
-      modal.classList.remove('active');
-      loadProblems();
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
-  });
-  modal.classList.add('active');
+    modal.classList.add('active');
+  } catch (e) {
+    body.innerHTML = `<p>${escapeHtml(e.message)}</p>`;
+    modal.classList.add('active');
+  }
 }
 
 document.querySelector('.modal-close').addEventListener('click', () => {
@@ -219,7 +258,41 @@ document.getElementById('problemModal').addEventListener('click', (e) => {
   if (e.target.id === 'problemModal') e.target.classList.remove('active');
 });
 
-// Stats
+document.getElementById('searchAttemptsBtn').addEventListener('click', async () => {
+  const q = document.getElementById('approachSearch').value.trim();
+  const el = document.getElementById('searchResults');
+  if (!q) {
+    el.innerHTML = '<div class="empty-state">Enter a keyword.</div>';
+    return;
+  }
+  try {
+    const results = await fetchJson(`${API}/search?q=${encodeURIComponent(q)}`);
+    if (results.length === 0) {
+      el.innerHTML = '<div class="empty-state">No matching attempts.</div>';
+      return;
+    }
+    el.innerHTML = results
+      .map((p) => {
+        const diff = (p.difficulty || '').toLowerCase();
+        const diffClass = diff === 'easy' || diff === 'medium' || diff === 'hard' ? diff : '';
+        return `
+        <div class="problem-card" data-id="${p.id}">
+          <div class="title">${escapeHtml(p.title)} <span class="mono">#${p.id}</span></div>
+          <div class="meta">
+            <span class="difficulty ${diffClass}">${escapeHtml(p.difficulty)}</span>
+            <span>${(p.notes || []).length} matching note(s)</span>
+          </div>
+        </div>`;
+      })
+      .join('');
+    el.querySelectorAll('.problem-card').forEach((card) => {
+      card.addEventListener('click', () => openProblemModal(card.dataset.id));
+    });
+  } catch (e) {
+    el.innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`;
+  }
+});
+
 async function loadStats() {
   try {
     const [fastest, slowest] = await Promise.all([
@@ -228,27 +301,34 @@ async function loadStats() {
     ]);
     const fastestEl = document.getElementById('fastestHard');
     const slowestEl = document.getElementById('slowestCategories');
-    fastestEl.innerHTML = fastest.length === 0
-      ? '<li>No hard problems with time data yet.</li>'
-      : fastest.map((x) => `<li>${escapeHtml(x.title)} → ${x.minutes} min</li>`).join('');
-    slowestEl.innerHTML = slowest.length === 0
-      ? '<li>No category data yet.</li>'
-      : slowest.map((x) => `<li>${escapeHtml(x.category)}: ${x.avg_minutes} min (avg)</li>`).join('');
+    fastestEl.innerHTML =
+      fastest.length === 0
+        ? '<li>No hard problems with time data yet.</li>'
+        : fastest.map((x) => `<li>${escapeHtml(x.title)} (#${x.id}) → ${x.minutes} min</li>`).join('');
+    slowestEl.innerHTML =
+      slowest.length === 0
+        ? '<li>No topic data yet.</li>'
+        : slowest.map((x) => `<li>${escapeHtml(x.category)}: ${x.avg_minutes} min (avg)</li>`).join('');
   } catch (e) {
-    document.getElementById('fastestHard').innerHTML = `<li>Error: ${e.message}</li>`;
+    document.getElementById('fastestHard').innerHTML = `<li>Error: ${escapeHtml(e.message)}</li>`;
     document.getElementById('slowestCategories').innerHTML = '';
   }
 }
 
 document.getElementById('loadStatsBtn').addEventListener('click', async () => {
-  const title = document.getElementById('statsProblemTitle').value.trim();
-  if (!title) {
-    showToast('Enter a problem title', 'error');
+  const raw = document.getElementById('statsProblemId').value.trim();
+  const el = document.getElementById('timeStats');
+  if (!raw) {
+    showToast('Enter a problem number', 'error');
     return;
   }
-  const el = document.getElementById('timeStats');
+  const pid = parseInt(raw, 10);
+  if (Number.isNaN(pid)) {
+    showToast('Invalid problem number', 'error');
+    return;
+  }
   try {
-    const stats = await fetchJson(`${API}/stats/time/${encodeURIComponent(title)}`);
+    const stats = await fetchJson(`${API}/stats/time/${pid}`);
     if (stats.average == null) {
       el.innerHTML = '<p>No time data for this problem.</p>';
     } else {
@@ -263,5 +343,7 @@ document.getElementById('loadStatsBtn').addEventListener('click', async () => {
   }
 });
 
-// Init
-loadProblems();
+state.sort = document.getElementById('sortBy').value;
+state.order = document.getElementById('sortOrder').value;
+loadCatalogTags();
+loadCatalog();

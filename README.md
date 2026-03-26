@@ -1,29 +1,44 @@
-#  LeetTracker
+# LeetTracker
 
-A modular CLI tool for tracking, analyzing, and reflecting on LeetCode practice sessions. Powered by Python, built for growth.
+A Python project for tracking LeetCode practice: a **Flask web app** that browses a full problem catalog and logs attempts, plus an optional **CLI** that still uses free-form `data/problems.json`.
 
----
-
-##  Features
-
-  - Add problems with category, difficulty, status, and link  
-  - Record multiple attempts with:
-  - Technique used (e.g. brute force, DP)
-  - Time spent per attempt
-  - Timestamped reflection notes  
-  - View average, shortest, and longest solve time per problem  
-  - Search problems by approach used  
-  - Identify fastest-solved hard problems  
-  - Highlight most time-consuming categories  
-  - Monitor performance and pacing over time
+**Tutorial PDF:** see [`docs/leettracker-guide.tex`](docs/leettracker-guide.tex) (step-by-step Flask + frontend guide with diagrams). Build instructions: [`docs/README.md`](docs/README.md).
 
 ---
 
-##  Folder Structure
+## Features (web app)
+
+- Browse **all problems** from [`leetcode.json`](leetcode.json) (LeetCode `stat_status_pairs` export) with **title** and **difficulty** shown from the file (no manual typing).
+- **Sort** by problem number, title, or difficulty; **filter** by title substring; **paginate** the list.
+- Click a problem to **log attempts**: time spent, approach, solved or not, optional reflection.
+- **Search attempts** by approach keyword across your logged attempts.
+- **Stats**: fastest hard problems (with problem #), average time by topic (first tag when topics exist), time stats per problem #.
+
+### Topic tags (Array, Graph, …)
+
+The bundled `leetcode.json` export does **not** include per-problem topic tags. To enable **topic filtering** and richer **“slowest category”** stats, add [`data/problem_topics.json`](data/problem_topics.json): a JSON object mapping **slug** to a list of tag strings, for example:
+
+```json
+{
+  "two-sum": ["Array", "Hash Table"],
+  "number-of-islands": ["Array", "Depth-First Search", "Breadth-First Search", "Union Find", "Matrix"]
+}
+```
+
+Slugs must match `question__title_slug` in the catalog. An empty `{}` is valid until you fill it in.
+
+---
+
+## Folder structure
+
 ```text
 LeetTracker/
-├── main.py             # CLI
-├── app.py              # Web app (Flask)
+├── docs/
+│   ├── leettracker-guide.tex   # LaTeX tutorial (build PDF locally)
+│   └── README.md               # how to compile the guide
+├── leetcode.json          # Full catalog export (project root)
+├── main.py                # CLI (legacy problems.json)
+├── app.py                 # Flask web app
 ├── problem_tracker.py
 ├── templates/
 │   └── index.html
@@ -31,65 +46,46 @@ LeetTracker/
 │   ├── style.css
 │   └── app.js
 ├── utils/
-│   ├── storage.py
-│   ├── time_parse.py
-│   └── plot.py         # (Optional for visual features)
+│   ├── catalog.py       # Catalog load/cache, filters
+│   ├── storage.py       # Attempts + legacy CLI storage
+│   └── time_parse.py
 ├── data/
-│   └── problems.json
+│   ├── attempts.json    # Your attempts (keyed by LeetCode frontend problem #)
+│   ├── problem_topics.json
+│   └── problems.json    # Legacy CLI only
 ```
+
 ---
 
-##  How to Run
+## How to run
 
-### CLI
-1. Open a terminal in the project directory
-2. Run: `python main.py`
-3. Use the numbered CLI menu to add problems, append notes, and view stats
+### Web app
 
-### Web App
 1. Install dependencies: `pip install -r requirements.txt`
-2. Run: `python app.py`
-3. Open http://127.0.0.1:5000 in your browser
+2. Ensure `leetcode.json` is present at the project root (your export).
+3. Run: `python app.py`
+4. Open http://127.0.0.1:5000
+
+### CLI (legacy)
+
+1. `python main.py`
+2. Uses `data/problems.json` for manually entered problems (separate from the web catalog).
 
 ---
 
-##  Note System
+## Attempt fields
 
-Each problem supports multiple note entries per attempt, including:
+Each attempt stores:
 
-- `attempt`: The try number (e.g. "1", "2")  
-- `approach`: Strategy used ("brute force", "sliding window")  
-- `reflection`: Description of your thought process  
-- `time_spent`: Duration (e.g. `"30 minutes"`, `"1.5 hours"`)  
-- `timestamp`: Automatically logged when you add the note  
-
----
-
-##  Analytics
-
-- **View time stats** per problem  
-- **Search by approach keyword**  
-- **Filter fastest-solved hard problems**  
-- **Find slowest categories by average time spent**
-
-Perfect for competitive prep, spaced repetition, and deep reflection.
+- `attempt` — auto-incremented
+- `time_spent` — e.g. `"30 minutes"`
+- `approach` — short description
+- `solved` — boolean
+- `reflection` — optional
+- `timestamp` — set when the attempt is saved
 
 ---
 
-##  Future Ideas
+## Why I built this
 
-- Make a GUI or Website frontend
-- Visualize performance with `matplotlib`
-- Add spaced repetition or revisit tracking
-- Export to CSV or Markdown for publishing
----
-
-##  Getting Started
-
-Make sure Python 3.8+ is installed  
-(Optional) Install `matplotlib` for plotting:
-```bash
-pip install matplotlib
-```
-## Why I Built This
--I built this to help me keep track of my leetcode progress and hold myself accountable
+To keep track of LeetCode progress and stay accountable.

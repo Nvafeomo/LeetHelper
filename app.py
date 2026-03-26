@@ -1,16 +1,30 @@
-"""Flask web app for LeetTracker."""
+"""Flask web app for LeetTracker (catalog + attempts)."""
 import os
+
 from flask import Flask, render_template, request, jsonify
-from problem_tracker import Problem
-from utils.storage import (
-    load_problems, save_problems, add_note_to_problem,
-    search_by_approach, fastest_hard_problems, most_time_consuming_categories,
-    remove_problem, delete_note_from_problem
+
+from utils.catalog import (
+    load_catalog_rows,
+    catalog_by_id,
+    filter_sort_page,
+    iter_unique_tags,
 )
-from datetime import datetime
+from utils.storage import (
+    append_attempt,
+    delete_attempt,
+    get_attempts_for_problem,
+    search_attempts_by_approach,
+    time_stats_for_problem,
+    catalog_fastest_hard_problems,
+    catalog_slowest_tags,
+)
 
 app = Flask(__name__)
-DATA_FILE = os.path.join(os.path.dirname(__file__), "data", "problems.json")
+
+
+def _get_catalog_map():
+    rows = load_catalog_rows()
+    return catalog_by_id()
 
 
 @app.route("/")
@@ -18,107 +32,105 @@ def index():
     return render_template("index.html")
 
 
-@app.route("/api/problems", methods=["GET"])
-def get_problems():
-    problems = load_problems(DATA_FILE)
-    return jsonify(problems)
-
-
-@app.route("/api/problems", methods=["POST"])
-def create_problem():
-    data = request.get_json()
-    required = ["title", "category", "difficulty", "status", "link", "attempt", "approach", "reflection", "time_spent"]
-    if not all(data.get(k) for k in required):
-        return jsonify({"error": "Missing required fields"}), 400
-
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    notes = [{
-        "attempt": str(data["attempt"]),
-        "approach": data["approach"],
-        "reflection": data["reflection"],
-        "time_spent": data["time_spent"],
-        "timestamp": timestamp
-    }]
-    problem = Problem(
-        data["title"], data["category"], data["difficulty"],
-        data["status"], data["link"], notes
+@app.route("/api/catalog", methods=["GET"])
+def api_catalog():
+    rows = load_catalog_rows()
+    q = request.args.get("q", "")
+    tag = request.args.get("tag", "")
+    sort_by = request.args.get("sort", "id")
+    order = request.args.get("order", "asc")
+    try:
+        limit = int(request.args.get("limit", 100))
+    except ValueError:
+        limit = 100
+    try:
+        offset = int(request.args.get("offset", 0))
+    except ValueError:
+        offset = 0
+    page, total = filter_sort_page(
+        rows, q=q, tag=tag, sort_by=sort_by, order=order, limit=limit, offset=offset
     )
-    problems = load_problems(DATA_FILE)
-    problems.append(problem.to_dict())
-    save_problems(problems, DATA_FILE)
-    return jsonify({"success": True, "message": "Problem added!"})
+    return jsonify({"items": page, "total": total, "limit": limit, "offset": offset})
 
 
-@app.route("/api/problems/<title>/notes", methods=["POST"])
-def append_note(title):
-    data = request.get_json()
-    required = ["attempt", "approach", "reflection", "time_spent"]
-    if not all(data.get(k) for k in required):
-        return jsonify({"error": "Missing required fields"}), 400
+@app.route("/api/catalog/tags", methods=["GET"])
+def api_catalog_tags():
+    rows = load_catalog_rows()
+    return jsonify(iter_unique_tags(rows))
 
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    note = {
-        "attempt": str(data["attempt"]),
-        "approach": data["approach"],
-        "reflection": data["reflection"],
-        "time_spent": data["time_spent"],
-        "timestamp": timestamp
-    }
-    success = add_note_to_problem(title, note, DATA_FILE)
-    if not success:
+
+@app.route("/api/catalog/<int:problem_id>", methods=["GET"])
+def api_catalog_one(problem_id):
+    cmap = _get_catalog_map()
+    key = str(problem_id)
+    meta = cmap.get(key)
+    if not meta:
         return jsonify({"error": "Problem not found"}), 404
-    return jsonify({"success": True, "message": "Note added!"})
+    attempts = get_attempts_for_problem(problem_id)
+    return jsonify({**meta, "attempts": attempts})
+
+
+@app.route("/api/catalog/<int:problem_id>/attempts", methods=["POST"])
+def api_add_attempt(problem_id):
+    cmap = _get_catalog_map()
+    if str(problem_id) not in cmap:
+        return jsonify({"error": "Problem not found"}), 404
+    data = request.get_json() or {}
+    time_spent = (data.get("time_spent") or "").strip()
+    approach = (data.get("approach") or "").strip()
+    if not time_spent or not approach:
+        return jsonify({"error": "time_spent and approach are required"}), 400
+    reflection = (data.get("reflection") or "").strip()
+    solved = bool(data.get("solved"))
+    note = {
+        "time_spent": time_spent,
+        "approach": approach,
+        "reflection": reflection,
+        "solved": solved,
+    }
+    saved = append_attempt(problem_id, note)
+    return jsonify({"success": True, "attempt": saved})
+
+
+@app.route("/api/catalog/<int:problem_id>/attempts/<attempt>", methods=["DELETE"])
+def api_delete_attempt(problem_id, attempt):
+    ok = delete_attempt(problem_id, attempt)
+    if not ok:
+        return jsonify({"error": "Attempt not found"}), 404
+    return jsonify({"success": True})
 
 
 @app.route("/api/search", methods=["GET"])
-def search():
+def api_search():
     keyword = request.args.get("q", "")
-    if not keyword:
-        return jsonify([])
-    results = search_by_approach(keyword, DATA_FILE)
+    cmap = _get_catalog_map()
+    results = search_attempts_by_approach(keyword, cmap)
     return jsonify(results)
 
 
-@app.route("/api/stats/time/<title>")
-def time_stats(title):
-    problems = load_problems(DATA_FILE)
-    for pdata in problems:
-        if pdata["title"].lower() == title.lower():
-            p = Problem(
-                pdata["title"], pdata["category"], pdata["difficulty"],
-                pdata["status"], pdata["link"], pdata.get("notes", [])
-            )
-            stats = p.get_time_stats()
-            return jsonify(stats)
-    return jsonify({"error": "Problem not found"}), 404
+@app.route("/api/stats/time/<int:problem_id>")
+def api_time_stats(problem_id):
+    cmap = _get_catalog_map()
+    if str(problem_id) not in cmap:
+        return jsonify({"error": "Problem not found"}), 404
+    stats = time_stats_for_problem(problem_id)
+    return jsonify(stats)
 
 
 @app.route("/api/stats/fastest-hard")
-def fastest_hard():
-    results = fastest_hard_problems(DATA_FILE)
-    return jsonify([{"title": t, "minutes": m} for t, m in results])
+def api_fastest_hard():
+    cmap = _get_catalog_map()
+    rows = catalog_fastest_hard_problems(cmap)
+    return jsonify(
+        [{"title": t, "id": pid, "minutes": m} for t, pid, m in rows]
+    )
 
 
 @app.route("/api/stats/slowest-categories")
-def slowest_categories():
-    results = most_time_consuming_categories(DATA_FILE)
+def api_slowest_categories():
+    cmap = _get_catalog_map()
+    results = catalog_slowest_tags(cmap)
     return jsonify([{"category": c, "avg_minutes": a} for c, a in results])
-
-
-@app.route("/api/problems/<title>", methods=["DELETE"])
-def delete_problem(title):
-    success = remove_problem(title, DATA_FILE)
-    if not success:
-        return jsonify({"error": "Problem not found"}), 404
-    return jsonify({"success": True, "message": "Problem removed"})
-
-
-@app.route("/api/problems/<title>/notes/<attempt>", methods=["DELETE"])
-def delete_note(title, attempt):
-    success = delete_note_from_problem(title, attempt, DATA_FILE)
-    if not success:
-        return jsonify({"error": "Problem or note not found"}), 404
-    return jsonify({"success": True, "message": "Note removed"})
 
 
 if __name__ == "__main__":

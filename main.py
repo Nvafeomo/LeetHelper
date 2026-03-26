@@ -1,8 +1,13 @@
 from problem_tracker import Problem
 from utils.storage import (
-    load_problems, save_problems, add_note_to_problem, 
-    search_by_approach, fastest_hard_problems, most_time_consuming_categories,
-    remove_problem, delete_note_from_problem
+    load_problems,
+    save_problems,
+    add_note_to_problem,
+    search_by_approach,
+    fastest_hard_problems_legacy,
+    most_time_consuming_categories_legacy,
+    remove_problem,
+    delete_note_from_problem,
 )
 from datetime import datetime
 
@@ -117,13 +122,13 @@ def view_time_stats():
     print("Problem not found.")
 
 def show_fastest_hard():
-    results = fastest_hard_problems(DATA_FILE)
+    results = fastest_hard_problems_legacy(DATA_FILE)
     print("\n Fastest Solved Hard Problems:")
     for title, time in results:
         print(f"- {title} → {time} min")
 
 def show_slowest_categories():
-    results = most_time_consuming_categories(DATA_FILE)
+    results = most_time_consuming_categories_legacy(DATA_FILE)
     print("\n Most Time-Consuming Categories:")
     for cat, avg in results:
         print(f"- {cat}: {avg} min (avg)")
