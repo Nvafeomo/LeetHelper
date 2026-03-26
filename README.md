@@ -88,4 +88,16 @@ Each attempt stores:
 
 ## Why I built this
 
-To keep track of LeetCode progress and stay accountable.
+To keep track of LeetCode progress and stay accountable. I originally built the CLI to help monitor LeetCode progress and brush up my Python skills; I added a Flask + HTML/CSS frontend so the project is easier to show on a resume.
+
+You can **view time stats** per problem, **search by approach keyword**, **see fastest-solved hard problems**, and **find slowest categories by average time**—useful for competitive prep, spaced repetition, and reflection.
+
+---
+
+## Future ideas
+
+- Use a browser extension or API to collect time spent and problem info from LeetCode.
+- Visualize performance with `matplotlib`.
+- Add spaced repetition or revisit tracking.
+- Export to CSV or Markdown for publishing.
+- Polish the web UI and make more of the prompts optional.
