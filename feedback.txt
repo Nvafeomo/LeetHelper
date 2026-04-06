@@ -1,0 +1,5 @@
+1. Approximately how long did you spend on this assignment? I spent 2-4 hours on this assignment.
+
+2. Which parts were most challenging? Any major stumbling blocks? I struggled a bit with the tell() function but everything afterwards was pretty smooth. 
+
+3. What is one thing you would improve about the starter code or writeup? I visual of a sample Wumpus world(with breeze glitter and stench) in canvas could be helpful. 
