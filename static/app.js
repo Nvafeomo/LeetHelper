@@ -7,6 +7,8 @@ const state = {
   sort: 'id',
   order: 'asc',
   tag: '',
+  /** 'all' | 'blind75' — sent as GET /api/catalog?list=… */
+  list: 'all',
 };
 
 function showToast(message, type = 'success') {
@@ -56,16 +58,24 @@ function buildCatalogQuery() {
     sort: state.sort,
     order: state.order,
   });
+  if (state.list && state.list !== 'all') params.set('list', state.list);
   if (state.q) params.set('q', state.q);
   if (state.tag) params.set('tag', state.tag);
   return params.toString();
+}
+
+function catalogTagsUrl() {
+  if (state.list && state.list !== 'all') {
+    return `${API}/catalog/tags?list=${encodeURIComponent(state.list)}`;
+  }
+  return `${API}/catalog/tags`;
 }
 
 async function loadCatalogTags() {
   const tagSelect = document.getElementById('tagFilter');
   const hint = document.getElementById('tagHint');
   try {
-    const tags = await fetchJson(`${API}/catalog/tags`);
+    const tags = await fetchJson(catalogTagsUrl());
     tagSelect.innerHTML = '<option value="">All topics</option>';
     tags.forEach((t) => {
       const opt = document.createElement('option');
@@ -121,6 +131,22 @@ async function loadCatalog() {
         });
       });
     }
+    const listHintEl = document.getElementById('catalogListHint');
+    if (listHintEl) {
+      if (data.list === 'blind75' && data.list_size != null) {
+        const m =
+          data.matched_in_catalog != null ? data.matched_in_catalog : data.total;
+        const missing = data.list_size - m;
+        const extra =
+          missing > 0
+            ? ` ${missing} id(s) from the list are not in your leetcode.json export.`
+            : '';
+        listHintEl.textContent = `Blind 75: ${m} of ${data.list_size} problems in catalog.${extra}`;
+      } else {
+        listHintEl.textContent = '';
+      }
+    }
+
     const total = data.total ?? 0;
     const end = Math.min(state.offset + state.limit, total);
     const prevDisabled = state.offset <= 0;
@@ -148,6 +174,14 @@ document.getElementById('catalogSearch').addEventListener('input', (e) => {
     state.offset = 0;
     loadCatalog();
   }, 300);
+});
+
+document.getElementById('catalogList').addEventListener('change', (e) => {
+  state.list = e.target.value || 'all';
+  state.tag = '';
+  state.offset = 0;
+  loadCatalogTags();
+  loadCatalog();
 });
 
 ['sortBy', 'sortOrder', 'tagFilter'].forEach((id) => {
@@ -343,6 +377,7 @@ document.getElementById('loadStatsBtn').addEventListener('click', async () => {
   }
 });
 
+state.list = document.getElementById('catalogList').value || 'all';
 state.sort = document.getElementById('sortBy').value;
 state.order = document.getElementById('sortOrder').value;
 loadCatalogTags();

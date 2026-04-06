@@ -5,12 +5,14 @@ import os
 _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DEFAULT_CATALOG_PATH = os.path.join(_ROOT, "leetcode.json")
 TOPICS_PATH = os.path.join(_ROOT, "data", "problem_topics.json")
+BLIND_75_PATH = os.path.join(_ROOT, "data", "blind75.json")
 
 _cache_rows = None
 _cache_key = None
-_cache_path = None
 _topics_cache = None
 _topics_mtime = None
+_blind_75_ids_cache = None
+_blind_75_mtime = None
 
 
 def level_to_label(level):
@@ -45,9 +47,77 @@ def _topics_file_mtime():
     return os.path.getmtime(TOPICS_PATH)
 
 
+def _load_blind_75_ids():
+    """Cached set of problem ids from data/blind75.json (mtime-based invalidation)."""
+    global _blind_75_ids_cache, _blind_75_mtime
+    if not os.path.isfile(BLIND_75_PATH):
+        return frozenset()
+    mtime = os.path.getmtime(BLIND_75_PATH)
+    if _blind_75_ids_cache is not None and _blind_75_mtime == mtime:
+        return _blind_75_ids_cache
+    try:
+        with open(BLIND_75_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        _blind_75_ids_cache = frozenset()
+        _blind_75_mtime = mtime
+        return _blind_75_ids_cache
+    ids = []
+    if isinstance(data, list):
+        for x in data:
+            try:
+                ids.append(int(x))
+            except (TypeError, ValueError):
+                pass
+    _blind_75_ids_cache = frozenset(ids)
+    _blind_75_mtime = mtime
+    return _blind_75_ids_cache
+
+
+def normalize_list_key(raw):
+    """Return 'all' or a known list id (e.g. 'blind75'); unknown values -> 'all'."""
+    if not raw:
+        return "all"
+    key = str(raw).strip().lower()
+    if key in ("", "all"):
+        return "all"
+    if key == "blind75":
+        return "blind75"
+    return "all"
+
+
+def rows_for_catalog_list(rows, list_key):
+    """Restrict rows to a curated id list. list_key 'all' means no restriction."""
+    if not list_key or list_key == "all":
+        return list(rows)
+    if list_key == "blind75":
+        allowed = _load_blind_75_ids()
+        return [r for r in rows if r.get("id") in allowed]
+    return list(rows)
+
+
+def list_metadata(list_key, rows_after_list_filter):
+    """
+    Extra fields for API responses when using a named list.
+    list_size: number of ids declared in the list file.
+    matched_in_catalog: how many of those appear in the current leetcode.json export.
+    """
+    if list_key == "all":
+        return {}
+    if list_key == "blind75":
+        declared = len(_load_blind_75_ids())
+        matched = len(rows_after_list_filter)
+        return {
+            "list": "blind75",
+            "list_size": declared,
+            "matched_in_catalog": matched,
+        }
+    return {}
+
+
 def load_catalog_rows(catalog_path=None, force_reload=False):
     """Return normalized list of problem dicts. Cached by catalog + topics mtimes."""
-    global _cache_rows, _cache_key, _cache_path
+    global _cache_rows, _cache_key
     path = catalog_path or DEFAULT_CATALOG_PATH
     if not os.path.isfile(path):
         return []
@@ -96,7 +166,6 @@ def load_catalog_rows(catalog_path=None, force_reload=False):
 
     _cache_rows = rows
     _cache_key = key
-    _cache_path = path
     return rows
 
 

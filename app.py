@@ -8,6 +8,9 @@ from utils.catalog import (
     catalog_by_id,
     filter_sort_page,
     iter_unique_tags,
+    list_metadata,
+    normalize_list_key,
+    rows_for_catalog_list,
 )
 from utils.storage import (
     append_attempt,
@@ -34,7 +37,23 @@ def index():
 
 @app.route("/api/catalog", methods=["GET"])
 def api_catalog():
+    """
+    Query params:
+      list   — optional; 'all' (default) or 'blind75'. Restricts rows to ids in data/blind75.json.
+      q      — title substring filter.
+      tag    — topic tag (from problem_topics.json).
+      sort   — id | title | difficulty
+      order  — asc | desc
+      limit, offset — pagination
+
+    Response always includes items, total, limit, offset.
+    When list=blind75, also includes list, list_size (ids in file), matched_in_catalog (present in export).
+    """
+    list_key = normalize_list_key(request.args.get("list", "all"))
     rows = load_catalog_rows()
+    rows = rows_for_catalog_list(rows, list_key)
+    extra = list_metadata(list_key, rows)
+
     q = request.args.get("q", "")
     tag = request.args.get("tag", "")
     sort_by = request.args.get("sort", "id")
@@ -50,12 +69,17 @@ def api_catalog():
     page, total = filter_sort_page(
         rows, q=q, tag=tag, sort_by=sort_by, order=order, limit=limit, offset=offset
     )
-    return jsonify({"items": page, "total": total, "limit": limit, "offset": offset})
+    payload = {"items": page, "total": total, "limit": limit, "offset": offset}
+    payload.update(extra)
+    return jsonify(payload)
 
 
 @app.route("/api/catalog/tags", methods=["GET"])
 def api_catalog_tags():
+    """Same `list` param as GET /api/catalog — tags are computed only from rows in that list."""
+    list_key = normalize_list_key(request.args.get("list", "all"))
     rows = load_catalog_rows()
+    rows = rows_for_catalog_list(rows, list_key)
     return jsonify(iter_unique_tags(rows))
 
 

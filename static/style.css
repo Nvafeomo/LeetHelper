@@ -41,6 +41,10 @@ body {
   align-items: center;
 }
 
+.catalog-list-select {
+  min-width: 9.5rem;
+}
+
 .toolbar .search-input {
   flex: 1;
   min-width: 180px;

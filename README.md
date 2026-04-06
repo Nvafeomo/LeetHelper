@@ -18,7 +18,9 @@ Put `leetcode.json` at the project root (LeetCode `stat_status_pairs` style expo
 
 ## Usage
 
-The web UI loads all problems from `leetcode.json` with title and difficulty. Sort by number, title, or difficulty; filter by title; paginate. Open a problem to log attempts and search past attempts by a keyword in your approach notes.
+The web UI loads all problems from `leetcode.json` with title and difficulty. Use the **problem list** dropdown (All problems / Blind 75) to scope the table to `data/blind75.json` — the standard **LeetCode Blind 75** id list (75 frontend problem numbers). Sort by number, title, or difficulty; filter by title; paginate. Open a problem to log attempts and search past attempts by a keyword in your approach notes.
+
+The API supports `GET /api/catalog?list=blind75` (and `GET /api/catalog/tags?list=blind75`) so you can add more curated lists later the same way.
 
 Stats include fastest hard solves (with problem number), average time by topic when you have topics, and per-problem time summaries.
 

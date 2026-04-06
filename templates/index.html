@@ -25,6 +25,10 @@
     <main class="content">
       <section id="catalog" class="panel active">
         <div class="toolbar">
+          <select id="catalogList" class="select-input catalog-list-select" title="Problem list">
+            <option value="all">All problems</option>
+            <option value="blind75">Blind 75</option>
+          </select>
           <input type="search" id="catalogSearch" class="search-input" placeholder="Filter by title…" autocomplete="off">
           <select id="sortBy" class="select-input" title="Sort by">
             <option value="id">Sort: problem #</option>
@@ -39,6 +43,7 @@
             <option value="">All topics</option>
           </select>
         </div>
+        <p class="hint" id="catalogListHint"></p>
         <p class="hint" id="tagHint"></p>
         <div class="catalog-wrap">
           <table class="catalog-table" id="catalogTable">
@@ -83,23 +88,6 @@
             <button type="button" id="loadStatsBtn" class="btn btn-secondary">Load stats</button>
           </div>
           <div id="timeStats" class="time-stats"></div>
-        </div>
-      </section>
-      <section id="Blind 75" class="panel"> 
-        <div class="toolbar">
-          <input type="search" id="catalogSearch" class="search-input" placeholder="Filter by title…" autocomplete="off">
-          <select id="sortBy" class="select-input" title="Sort by">
-            <option value="id">Sort: problem #</option>
-            <option value="title">Sort: title</option>
-            <option value="difficulty">Sort: difficulty</option>
-          </select>
-          <select id="sortOrder" class="select-input" title="Order">
-            <option value="asc">Ascending</option>
-            <option value="desc">Descending</option>
-          </select>
-          <select id="tagFilter" class="select-input" title="Topic tag">
-            <option value="">All topics</option>
-          </select>
         </div>
       </section>
     </main>

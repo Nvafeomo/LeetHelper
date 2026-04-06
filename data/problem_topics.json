@@ -1,1 +1,342 @@
-{}
+{
+  "merge-strings-alternately": [
+    "Two Pointers",
+    "String"
+  ],
+  "greatest-common-divisor-of-strings": [
+    "Math",
+    "String"
+  ],
+  "kids-with-the-greatest-number-of-candies": [
+    "Array"
+  ],
+  "can-place-flowers": [
+    "Array",
+    "Greedy"
+  ],
+  "reverse-vowels-of-a-string": [
+    "Two Pointers",
+    "String"
+  ],
+  "reverse-words-in-a-string": [
+    "Two Pointers",
+    "String"
+  ],
+  "product-of-array-except-self": [
+    "Array",
+    "Prefix Sum"
+  ],
+  "increasing-triplet-subsequence": [
+    "Array",
+    "Greedy"
+  ],
+  "string-compression": [
+    "Two Pointers",
+    "String"
+  ],
+  "move-zeroes": [
+    "Array",
+    "Two Pointers"
+  ],
+  "is-subsequence": [
+    "Two Pointers",
+    "String",
+    "Dynamic Programming"
+  ],
+  "container-with-most-water": [
+    "Array",
+    "Two Pointers",
+    "Greedy"
+  ],
+  "max-number-of-k-sum-pairs": [
+    "Array",
+    "Hash Table",
+    "Two Pointers"
+  ],
+  "maximum-average-subarray-i": [
+    "Array",
+    "Sliding Window"
+  ],
+  "maximum-number-of-vowels-in-a-substring-of-given-length": [
+    "String",
+    "Sliding Window"
+  ],
+  "max-consecutive-ones-iii": [
+    "Array",
+    "Binary Search",
+    "Sliding Window"
+  ],
+  "longest-subarray-of-1s-after-deleting-one-element": [
+    "Array",
+    "Dynamic Programming",
+    "Sliding Window"
+  ],
+  "find-the-highest-altitude": [
+    "Array",
+    "Prefix Sum"
+  ],
+  "find-pivot-index": [
+    "Array",
+    "Prefix Sum"
+  ],
+  "find-the-difference-of-two-arrays": [
+    "Array",
+    "Hash Table"
+  ],
+  "unique-number-of-occurrences": [
+    "Array",
+    "Hash Table"
+  ],
+  "determine-if-two-strings-are-close": [
+    "Hash Table",
+    "String",
+    "Sorting"
+  ],
+  "equal-row-and-column-pairs": [
+    "Array",
+    "Hash Table",
+    "Matrix"
+  ],
+  "removing-stars-from-a-string": [
+    "String",
+    "Stack",
+    "Simulation"
+  ],
+  "asteroid-collision": [
+    "Array",
+    "Stack",
+    "Simulation"
+  ],
+  "decode-string": [
+    "String",
+    "Stack",
+    "Recursion"
+  ],
+  "number-of-recent-calls": [
+    "Design",
+    "Queue",
+    "Data Stream"
+  ],
+  "dota2-senate": [
+    "String",
+    "Greedy",
+    "Queue"
+  ],
+  "delete-the-middle-node-of-a-linked-list": [
+    "Linked List",
+    "Two Pointers"
+  ],
+  "odd-even-linked-list": [
+    "Linked List"
+  ],
+  "reverse-linked-list": [
+    "Linked List",
+    "Recursion"
+  ],
+  "maximum-twin-sum-of-a-linked-list": [
+    "Linked List",
+    "Two Pointers",
+    "Stack"
+  ],
+  "maximum-depth-of-binary-tree": [
+    "Tree",
+    "Depth-First Search",
+    "Breadth-First Search"
+  ],
+  "leaf-similar-trees": [
+    "Tree",
+    "Depth-First Search",
+    "Binary Tree"
+  ],
+  "count-good-nodes-in-binary-tree": [
+    "Tree",
+    "Depth-First Search",
+    "Breadth-First Search"
+  ],
+  "path-sum-iii": [
+    "Tree",
+    "Depth-First Search",
+    "Binary Tree"
+  ],
+  "longest-zigzag-path-in-a-binary-tree": [
+    "Dynamic Programming",
+    "Tree",
+    "Depth-First Search"
+  ],
+  "lowest-common-ancestor-of-a-binary-tree": [
+    "Tree",
+    "Depth-First Search",
+    "Binary Tree"
+  ],
+  "binary-tree-right-side-view": [
+    "Tree",
+    "Depth-First Search",
+    "Breadth-First Search"
+  ],
+  "maximum-level-sum-of-a-binary-tree": [
+    "Tree",
+    "Depth-First Search",
+    "Breadth-First Search"
+  ],
+  "search-in-a-binary-search-tree": [
+    "Tree",
+    "Binary Search Tree",
+    "Binary Tree"
+  ],
+  "delete-node-in-a-bst": [
+    "Tree",
+    "Binary Search Tree",
+    "Binary Tree"
+  ],
+  "keys-and-rooms": [
+    "Depth-First Search",
+    "Breadth-First Search",
+    "Graph Theory"
+  ],
+  "number-of-provinces": [
+    "Depth-First Search",
+    "Breadth-First Search",
+    "Union Find"
+  ],
+  "reorder-routes-to-make-all-paths-lead-to-the-city-zero": [
+    "Depth-First Search",
+    "Breadth-First Search",
+    "Graph Theory"
+  ],
+  "evaluate-division": [
+    "Array",
+    "String",
+    "Depth-First Search"
+  ],
+  "nearest-exit-from-entrance-in-maze": [
+    "Array",
+    "Breadth-First Search",
+    "Matrix"
+  ],
+  "rotting-oranges": [
+    "Array",
+    "Breadth-First Search",
+    "Matrix"
+  ],
+  "kth-largest-element-in-an-array": [
+    "Array",
+    "Divide and Conquer",
+    "Sorting"
+  ],
+  "smallest-number-in-infinite-set": [
+    "Hash Table",
+    "Design",
+    "Heap (Priority Queue)"
+  ],
+  "maximum-subsequence-score": [
+    "Array",
+    "Greedy",
+    "Sorting"
+  ],
+  "total-cost-to-hire-k-workers": [
+    "Array",
+    "Two Pointers",
+    "Heap (Priority Queue)"
+  ],
+  "guess-number-higher-or-lower": [
+    "Binary Search",
+    "Interactive"
+  ],
+  "successful-pairs-of-spells-and-potions": [
+    "Array",
+    "Two Pointers",
+    "Binary Search"
+  ],
+  "find-peak-element": [
+    "Array",
+    "Binary Search"
+  ],
+  "koko-eating-bananas": [
+    "Array",
+    "Binary Search"
+  ],
+  "letter-combinations-of-a-phone-number": [
+    "Hash Table",
+    "String",
+    "Backtracking"
+  ],
+  "combination-sum-iii": [
+    "Array",
+    "Backtracking"
+  ],
+  "n-th-tribonacci-number": [
+    "Math",
+    "Dynamic Programming",
+    "Memoization"
+  ],
+  "min-cost-climbing-stairs": [
+    "Array",
+    "Dynamic Programming"
+  ],
+  "house-robber": [
+    "Array",
+    "Dynamic Programming"
+  ],
+  "domino-and-tromino-tiling": [
+    "Dynamic Programming"
+  ],
+  "unique-paths": [
+    "Math",
+    "Dynamic Programming",
+    "Combinatorics"
+  ],
+  "longest-common-subsequence": [
+    "String",
+    "Dynamic Programming"
+  ],
+  "best-time-to-buy-and-sell-stock-with-transaction-fee": [
+    "Array",
+    "Dynamic Programming",
+    "Greedy"
+  ],
+  "edit-distance": [
+    "String",
+    "Dynamic Programming"
+  ],
+  "counting-bits": [
+    "Dynamic Programming",
+    "Bit Manipulation"
+  ],
+  "single-number": [
+    "Array",
+    "Bit Manipulation"
+  ],
+  "minimum-flips-to-make-a-or-b-equal-to-c": [
+    "Bit Manipulation"
+  ],
+  "implement-trie-prefix-tree": [
+    "Hash Table",
+    "String",
+    "Design"
+  ],
+  "search-suggestions-system": [
+    "Array",
+    "String",
+    "Binary Search"
+  ],
+  "non-overlapping-intervals": [
+    "Array",
+    "Dynamic Programming",
+    "Greedy"
+  ],
+  "minimum-number-of-arrows-to-burst-balloons": [
+    "Array",
+    "Greedy",
+    "Sorting"
+  ],
+  "daily-temperatures": [
+    "Array",
+    "Stack",
+    "Monotonic Stack"
+  ],
+  "online-stock-span": [
+    "Stack",
+    "Design",
+    "Monotonic Stack"
+  ]
+}
