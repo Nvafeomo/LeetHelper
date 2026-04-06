@@ -1,40 +1,71 @@
 """Flask web app for LeetTracker (catalog + attempts)."""
 import os
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, jsonify, render_template, request
+from flask_login import current_user, login_required
+from flask_wtf.csrf import generate_csrf
 
+from auth import auth_bp
+from extensions import csrf, db, login_manager
+from models import User
 from utils.catalog import (
-    load_catalog_rows,
     catalog_by_id,
     filter_sort_page,
     iter_unique_tags,
     list_metadata,
     normalize_list_key,
     rows_for_catalog_list,
+    load_catalog_rows,
 )
-from utils.storage import (
-    append_attempt,
-    delete_attempt,
-    get_attempts_for_problem,
-    list_attempts_filtered,
-    search_attempts_by_approach,
-    time_stats_for_problem,
-    catalog_fastest_by_difficulty,
-    catalog_fastest_hard_problems,
-    catalog_slowest_tags,
-)
+from utils import storage_db
 
 app = Flask(__name__)
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY") or "dev-secret-change-me"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+_root = os.path.abspath(os.path.dirname(__file__))
+_data_dir = os.path.join(_root, "data")
+os.makedirs(_data_dir, exist_ok=True)
+
+
+def _database_uri():
+    uri = os.environ.get("DATABASE_URL")
+    if uri and uri.startswith("postgres://"):
+        uri = uri.replace("postgres://", "postgresql://", 1)
+    if uri:
+        return uri
+    db_path = os.path.join(_data_dir, "leetcodetracker.db")
+    return "sqlite:///" + db_path.replace("\\", "/")
+
+
+app.config["SQLALCHEMY_DATABASE_URI"] = _database_uri()
+
+db.init_app(app)
+login_manager.init_app(app)
+csrf.init_app(app)
+app.register_blueprint(auth_bp)
+
+login_manager.login_view = None
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return db.session.get(User, int(user_id))
+
+
+@login_manager.unauthorized_handler
+def unauthorized():
+    return jsonify({"error": "Authentication required"}), 401
+
+
+@app.route("/")
+def index():
+    return render_template("index.html", csrf_token=generate_csrf())
 
 
 def _get_catalog_map():
     rows = load_catalog_rows()
     return catalog_by_id()
-
-
-@app.route("/")
-def index():
-    return render_template("index.html")
 
 
 @app.route("/api/catalog", methods=["GET"])
@@ -92,11 +123,14 @@ def api_catalog_one(problem_id):
     meta = cmap.get(key)
     if not meta:
         return jsonify({"error": "Problem not found"}), 404
-    attempts = get_attempts_for_problem(problem_id)
+    attempts = []
+    if current_user.is_authenticated:
+        attempts = storage_db.get_attempts_for_problem(problem_id, current_user.id)
     return jsonify({**meta, "attempts": attempts})
 
 
 @app.route("/api/catalog/<int:problem_id>/attempts", methods=["POST"])
+@login_required
 def api_add_attempt(problem_id):
     cmap = _get_catalog_map()
     if str(problem_id) not in cmap:
@@ -114,19 +148,21 @@ def api_add_attempt(problem_id):
         "reflection": reflection,
         "solved": solved,
     }
-    saved = append_attempt(problem_id, note)
+    saved = storage_db.append_attempt(problem_id, note, current_user.id)
     return jsonify({"success": True, "attempt": saved})
 
 
 @app.route("/api/catalog/<int:problem_id>/attempts/<attempt>", methods=["DELETE"])
+@login_required
 def api_delete_attempt(problem_id, attempt):
-    ok = delete_attempt(problem_id, attempt)
+    ok = storage_db.delete_attempt(problem_id, attempt, current_user.id)
     if not ok:
         return jsonify({"error": "Attempt not found"}), 404
     return jsonify({"success": True})
 
 
 @app.route("/api/attempts", methods=["GET"])
+@login_required
 def api_list_attempts():
     """
     Flat list of attempts with problem metadata. Query params (all optional, substring match):
@@ -138,27 +174,29 @@ def api_list_attempts():
     topic = request.args.get("topic", "")
     approach = request.args.get("approach", "")
     cmap = _get_catalog_map()
-    rows = list_attempts_filtered(
-        cmap, title_q=title, topic_q=topic, approach_q=approach
+    rows = storage_db.list_attempts_filtered(
+        cmap, current_user.id, title_q=title, topic_q=topic, approach_q=approach
     )
     return jsonify(rows)
 
 
 @app.route("/api/search", methods=["GET"])
+@login_required
 def api_search():
     """Legacy: grouped by problem; approach keyword only. Prefer GET /api/attempts."""
     keyword = request.args.get("q", "")
     cmap = _get_catalog_map()
-    results = search_attempts_by_approach(keyword, cmap)
+    results = storage_db.search_attempts_by_approach(keyword, cmap, current_user.id)
     return jsonify(results)
 
 
 @app.route("/api/stats/time/<int:problem_id>")
+@login_required
 def api_time_stats(problem_id):
     cmap = _get_catalog_map()
     if str(problem_id) not in cmap:
         return jsonify({"error": "Problem not found"}), 404
-    stats = time_stats_for_problem(problem_id)
+    stats = storage_db.time_stats_for_problem(problem_id, current_user.id)
     return jsonify(stats)
 
 
@@ -167,26 +205,35 @@ def _fastest_json(rows):
 
 
 @app.route("/api/stats/fastest-hard")
+@login_required
 def api_fastest_hard():
     cmap = _get_catalog_map()
-    return _fastest_json(catalog_fastest_hard_problems(cmap))
+    return _fastest_json(storage_db.catalog_fastest_hard_problems(cmap, current_user.id))
 
 
 @app.route("/api/stats/fastest")
+@login_required
 def api_fastest_by_query():
     """GET /api/stats/fastest?difficulty=easy|medium|hard — fastest first timed attempt per difficulty."""
     d = (request.args.get("difficulty") or "").strip().lower()
     if d not in ("easy", "medium", "hard"):
         return jsonify({"error": "difficulty must be easy, medium, or hard"}), 400
     cmap = _get_catalog_map()
-    return _fastest_json(catalog_fastest_by_difficulty(cmap, d))
+    return _fastest_json(
+        storage_db.catalog_fastest_by_difficulty(cmap, d, current_user.id)
+    )
 
 
 @app.route("/api/stats/slowest-categories")
+@login_required
 def api_slowest_categories():
     cmap = _get_catalog_map()
-    results = catalog_slowest_tags(cmap)
+    results = storage_db.catalog_slowest_tags(cmap, current_user.id)
     return jsonify([{"category": c, "avg_minutes": a} for c, a in results])
+
+
+with app.app_context():
+    db.create_all()
 
 
 if __name__ == "__main__":

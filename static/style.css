@@ -266,8 +266,65 @@ body {
 }
 
 .header {
-  text-align: center;
   margin-bottom: 2rem;
+}
+
+.header-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+}
+
+.header-brand {
+  text-align: center;
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.auth-bar {
+  flex: 0 1 auto;
+  min-width: min(100%, 320px);
+}
+
+.auth-form,
+.auth-session {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.auth-input {
+  width: 7rem;
+  padding: 0.45rem 0.55rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+.auth-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.auth-input[type="password"] {
+  width: 8rem;
+}
+
+.auth-user-name {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-right: 0.25rem;
+}
+
+.hidden {
+  display: none !important;
 }
 
 .header h1 {

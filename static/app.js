@@ -14,6 +14,8 @@ const state = {
   attemptsTitle: '',
   attemptsTopic: '',
   attemptsApproach: '',
+  /** @type {{ id: number, username: string } | null} */
+  user: null,
 };
 
 function showToast(message, type = 'success') {
@@ -27,14 +29,52 @@ function showToast(message, type = 'success') {
   }, 2500);
 }
 
+function getCsrfToken() {
+  return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+}
+
 async function fetchJson(url, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  const headers = { ...(options.headers || {}) };
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+    headers['X-CSRFToken'] = getCsrfToken();
+  }
+  if (options.body != null && headers['Content-Type'] === undefined) {
+    headers['Content-Type'] = 'application/json';
+  }
   const res = await fetch(url, {
     ...options,
-    headers: { 'Content-Type': 'application/json', ...options.headers },
+    credentials: 'same-origin',
+    headers,
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || res.statusText);
   return data;
+}
+
+function renderAuthBar() {
+  const out = document.getElementById('authLoggedOut');
+  const inn = document.getElementById('authLoggedIn');
+  const nameEl = document.getElementById('authDisplayName');
+  if (!out || !inn) return;
+  if (state.user) {
+    out.classList.add('hidden');
+    inn.classList.remove('hidden');
+    if (nameEl) nameEl.textContent = state.user.username;
+  } else {
+    out.classList.remove('hidden');
+    inn.classList.add('hidden');
+  }
+}
+
+async function checkAuth() {
+  try {
+    const data = await fetchJson(`${API}/auth/me`);
+    state.user = data.user;
+  } catch {
+    state.user = null;
+  }
+  renderAuthBar();
 }
 
 function escapeHtml(s) {
@@ -249,21 +289,15 @@ async function openProblemModal(problemId) {
   const modal = document.getElementById('problemModal');
   const body = document.getElementById('modalBody');
   const id = String(problemId);
+  const loggedIn = !!state.user;
   try {
     const p = await fetchJson(`${API}/catalog/${id}`);
     const attempts = p.attempts || [];
     const diff = (p.difficulty || '').toLowerCase();
     const diffClass = diff === 'easy' || diff === 'medium' || diff === 'hard' ? diff : '';
     const tags = (p.tags || []).map((t) => `<span class="tag-chip">${escapeHtml(t)}</span>`).join(' ');
-    body.innerHTML = `
-      <h2 class="modal-title">${escapeHtml(p.title)}</h2>
-      <div class="meta">
-        <span class="mono">#${p.id}</span>
-        <span class="difficulty ${diffClass}">${escapeHtml(p.difficulty)}</span>
-        ${p.paid_only ? '<span class="badge-paid">Premium</span>' : ''}
-      </div>
-      ${tags ? `<div class="modal-tags">${tags}</div>` : ''}
-      ${p.link ? `<p><a href="${escapeHtml(p.link)}" target="_blank" rel="noopener noreferrer">Open on LeetCode</a></p>` : ''}
+    const attemptsBlock = loggedIn
+      ? `
       <div class="notes-section">
         <h4>Attempts</h4>
         ${attempts.length === 0 ? '<p class="text-muted">No attempts logged yet.</p>' : ''}
@@ -286,50 +320,66 @@ async function openProblemModal(problemId) {
         </label>
         <textarea name="reflection" placeholder="Reflection (optional)" rows="3"></textarea>
         <button type="button" class="btn btn-primary add-note-btn">Save attempt</button>
+      </div>`
+      : `<p class="hint sign-in-hint">Sign in (top right) to view and log your attempts for this problem.</p>`;
+    body.innerHTML = `
+      <h2 class="modal-title">${escapeHtml(p.title)}</h2>
+      <div class="meta">
+        <span class="mono">#${p.id}</span>
+        <span class="difficulty ${diffClass}">${escapeHtml(p.difficulty)}</span>
+        ${p.paid_only ? '<span class="badge-paid">Premium</span>' : ''}
       </div>
+      ${tags ? `<div class="modal-tags">${tags}</div>` : ''}
+      ${p.link ? `<p><a href="${escapeHtml(p.link)}" target="_blank" rel="noopener noreferrer">Open on LeetCode</a></p>` : ''}
+      ${attemptsBlock}
     `;
-    body.querySelectorAll('.delete-note-btn').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        if (!confirm('Delete this attempt?')) return;
-        try {
-          await fetchJson(`${API}/catalog/${id}/attempts/${encodeURIComponent(btn.dataset.attempt)}`, {
-            method: 'DELETE',
-          });
-          showToast('Attempt deleted');
-          await openProblemModal(id);
-          if (document.getElementById('attempts')?.classList.contains('active')) loadAttempts();
-        } catch (err) {
-          showToast(err.message, 'error');
-        }
-      });
-    });
-    body.querySelector('.add-note-btn').addEventListener('click', async () => {
-      const form = body.querySelector('.add-note-form');
-      const timeSpent = form.querySelector('[name="time_spent"]').value.trim();
-      const approach = form.querySelector('[name="approach"]').value.trim();
-      const reflection = form.querySelector('[name="reflection"]').value.trim();
-      const solved = form.querySelector('[name="solved"]').checked;
-      if (!timeSpent || !approach) {
-        showToast('Time spent and approach are required', 'error');
-        return;
-      }
-      try {
-        await fetchJson(`${API}/catalog/${id}/attempts`, {
-          method: 'POST',
-          body: JSON.stringify({
-            time_spent: timeSpent,
-            approach,
-            reflection,
-            solved,
-          }),
+    if (loggedIn) {
+      body.querySelectorAll('.delete-note-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Delete this attempt?')) return;
+          try {
+            await fetchJson(`${API}/catalog/${id}/attempts/${encodeURIComponent(btn.dataset.attempt)}`, {
+              method: 'DELETE',
+            });
+            showToast('Attempt deleted');
+            await openProblemModal(id);
+            if (document.getElementById('attempts')?.classList.contains('active')) loadAttempts();
+          } catch (err) {
+            showToast(err.message, 'error');
+          }
         });
-        showToast('Attempt saved');
-        await openProblemModal(id);
-        if (document.getElementById('attempts')?.classList.contains('active')) loadAttempts();
-      } catch (err) {
-        showToast(err.message, 'error');
+      });
+      const addBtn = body.querySelector('.add-note-btn');
+      if (addBtn) {
+        addBtn.addEventListener('click', async () => {
+          const form = body.querySelector('.add-note-form');
+          const timeSpent = form.querySelector('[name="time_spent"]').value.trim();
+          const approach = form.querySelector('[name="approach"]').value.trim();
+          const reflection = form.querySelector('[name="reflection"]').value.trim();
+          const solved = form.querySelector('[name="solved"]').checked;
+          if (!timeSpent || !approach) {
+            showToast('Time spent and approach are required', 'error');
+            return;
+          }
+          try {
+            await fetchJson(`${API}/catalog/${id}/attempts`, {
+              method: 'POST',
+              body: JSON.stringify({
+                time_spent: timeSpent,
+                approach,
+                reflection,
+                solved,
+              }),
+            });
+            showToast('Attempt saved');
+            await openProblemModal(id);
+            if (document.getElementById('attempts')?.classList.contains('active')) loadAttempts();
+          } catch (err) {
+            showToast(err.message, 'error');
+          }
+        });
       }
-    });
+    }
     modal.classList.add('active');
   } catch (e) {
     body.innerHTML = `<p>${escapeHtml(e.message)}</p>`;
@@ -385,6 +435,11 @@ function truncateText(s, max) {
 async function loadAttempts() {
   const tbody = document.getElementById('attemptsBody');
   if (!tbody) return;
+  if (!state.user) {
+    tbody.innerHTML =
+      '<tr><td colspan="9" class="empty-cell">Sign in to view your attempts.</td></tr>';
+    return;
+  }
   try {
     const q = buildAttemptsQuery();
     const rows = await fetchJson(`${API}/attempts${q ? `?${q}` : ''}`);
@@ -465,6 +520,14 @@ async function loadStats() {
     const el = document.getElementById(id);
     if (el) el.innerHTML = `<li>${escapeHtml(msg)}</li>`;
   };
+  if (!state.user) {
+    emptyErr('fastestEasy', 'Sign in to view stats.');
+    emptyErr('fastestMedium', 'Sign in to view stats.');
+    emptyErr('fastestHard', 'Sign in to view stats.');
+    const sc = document.getElementById('slowestCategories');
+    if (sc) sc.innerHTML = '<li>Sign in to view stats.</li>';
+    return;
+  }
   try {
     const [easy, medium, hard, slowest] = await Promise.all([
       fetchJson(`${API}/stats/fastest?difficulty=easy`),
@@ -498,6 +561,10 @@ async function loadStats() {
 }
 
 document.getElementById('loadStatsBtn').addEventListener('click', async () => {
+  if (!state.user) {
+    showToast('Sign in to load per-problem stats', 'error');
+    return;
+  }
   const raw = document.getElementById('statsProblemId').value.trim();
   const el = document.getElementById('timeStats');
   if (!raw) {
@@ -525,8 +592,70 @@ document.getElementById('loadStatsBtn').addEventListener('click', async () => {
   }
 });
 
-state.list = document.getElementById('catalogList').value || 'all';
-state.sort = document.getElementById('sortBy').value;
-state.order = document.getElementById('sortOrder').value;
-loadCatalogTags();
-loadCatalog();
+async function initApp() {
+  await checkAuth();
+  state.list = document.getElementById('catalogList').value || 'all';
+  state.sort = document.getElementById('sortBy').value;
+  state.order = document.getElementById('sortOrder').value;
+  loadCatalogTags();
+  loadCatalog();
+}
+
+document.getElementById('authLoginBtn').addEventListener('click', async () => {
+  const username = document.getElementById('authUsername').value.trim();
+  const password = document.getElementById('authPassword').value;
+  if (!username || !password) {
+    showToast('Enter username and password', 'error');
+    return;
+  }
+  try {
+    const data = await fetchJson(`${API}/auth/login`, {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+    state.user = data.user;
+    renderAuthBar();
+    showToast('Logged in');
+    if (document.getElementById('attempts')?.classList.contains('active')) loadAttempts();
+    if (document.getElementById('stats')?.classList.contains('active')) loadStats();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+});
+
+document.getElementById('authRegisterBtn').addEventListener('click', async () => {
+  const username = document.getElementById('authUsername').value.trim();
+  const password = document.getElementById('authPassword').value;
+  if (!username || !password) {
+    showToast('Enter username and password', 'error');
+    return;
+  }
+  try {
+    const data = await fetchJson(`${API}/auth/register`, {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+    state.user = data.user;
+    renderAuthBar();
+    showToast('Account created');
+    if (document.getElementById('attempts')?.classList.contains('active')) loadAttempts();
+    if (document.getElementById('stats')?.classList.contains('active')) loadStats();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+});
+
+document.getElementById('authLogoutBtn').addEventListener('click', async () => {
+  try {
+    await fetchJson(`${API}/auth/logout`, { method: 'POST' });
+    state.user = null;
+    renderAuthBar();
+    showToast('Logged out');
+    if (document.getElementById('attempts')?.classList.contains('active')) loadAttempts();
+    if (document.getElementById('stats')?.classList.contains('active')) loadStats();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+});
+
+initApp();

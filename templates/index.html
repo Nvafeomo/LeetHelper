@@ -8,12 +8,29 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <meta name="csrf-token" content="{{ csrf_token }}">
 </head>
 <body>
   <div class="app">
     <header class="header">
-      <h1>LeetTracker</h1>
-      <p class="tagline">Browse the catalog, log attempts, reflect on progress</p>
+      <div class="header-top">
+        <div class="header-brand">
+          <h1>LeetTracker</h1>
+          <p class="tagline">Browse the catalog, log attempts, reflect on progress</p>
+        </div>
+        <div id="authBar" class="auth-bar" aria-label="Account">
+          <div id="authLoggedOut" class="auth-form">
+            <input type="text" id="authUsername" class="auth-input" placeholder="Username" autocomplete="username" maxlength="32">
+            <input type="password" id="authPassword" class="auth-input" placeholder="Password" autocomplete="current-password">
+            <button type="button" class="btn btn-secondary" id="authLoginBtn">Log in</button>
+            <button type="button" class="btn btn-primary" id="authRegisterBtn">Register</button>
+          </div>
+          <div id="authLoggedIn" class="auth-session hidden">
+            <span class="auth-user-name" id="authDisplayName"></span>
+            <button type="button" class="btn btn-secondary" id="authLogoutBtn">Log out</button>
+          </div>
+        </div>
+      </div>
     </header>
 
     <nav class="tabs">

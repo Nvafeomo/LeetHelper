@@ -1,19 +1,22 @@
 # LeetTracker
 
-Web app for tracking LeetCode practice: browse a catalog from a `leetcode.json` export, log attempts (time, approach, solved, notes), search past notes, and view simple stats. Optional **Blind 75** list and topic tags. There’s also a small **CLI** (`main.py`) for a manual problem list.
+Web app for tracking LeetCode practice: browse a catalog from a `leetcode.json` export, log attempts (time, approach, solved, notes), filter attempts by topic and text, and view simple stats. Optional **Blind 75** list and topic tags. There’s also a small **CLI** (`main.py`) for a manual problem list.
 
 I built it to stay accountable while grinding problems and to practice Python, Flask, and plain HTML/CSS/JS.
 
 ## Features
 
+- **Accounts:** register, log in, log out; attempts and stats are **per user** (session cookies + CSRF on writes).
 - Catalog with sort, title filter, pagination; optional **Blind 75** (`data/blind75.json`)
-- Per-problem attempts + optional **topic tags** (`data/problem_topics.json`)
-- **Attempts** tab: all attempts with optional filters by problem name, topic, and approach/reflection; stats (fastest first attempt per difficulty, topic times, per-problem time)
+- Per-user attempts + optional **topic tags** (`data/problem_topics.json`)
+- **Attempts** tab: all attempts with optional filters by problem name, topic, and approach/reflection; stats (fastest first timed attempt per difficulty, topic times, per-problem time)
 - JSON **API** under `/api/…` (same app powers the UI)
 
 ## Stack
 
-**Python · Flask · HTML/CSS/JavaScript** — no framework on the front end. Data lives in **JSON files** (`data/attempts.json`, etc.), not a database.
+**Python · Flask · SQLAlchemy · Flask-Login · Flask-WTF (CSRF)** — front end is plain HTML/CSS/JS. The **catalog** still comes from JSON on disk (`data/leetcode.json`, topics, blind list). **Attempts** are stored in a **database** (SQLite file by default, or PostgreSQL via `DATABASE_URL`).
+
+Legacy **`data/attempts.json`** is no longer used by the web app; you can import it into a user account with `python scripts/import_attempts_json.py USERNAME` (see below).
 
 ## Run locally
 
@@ -21,25 +24,37 @@ I built it to stay accountable while grinding problems and to practice Python, F
 pip install -r requirements.txt
 ```
 
-Put **`leetcode.json`** at the repo root (LeetCode `stat_status_pairs` export). Then:
+Put **`data/leetcode.json`** in place (LeetCode `stat_status_pairs` export). Set a **secret key** for sessions (required outside debug):
 
 ```bash
+set SECRET_KEY=your-random-secret
 python app.py
 ```
 
-Open http://127.0.0.1:5000 · CLI: `python main.py`
+(On Unix: `export SECRET_KEY=...`.)
+
+Open http://127.0.0.1:5000 — **Register** an account in the header, then use Attempts / Stats. The SQLite file is created at **`data/leetcodetracker.db`** on first run.
+
+**Optional:** import old flat JSON attempts (from before the DB) after you register:
+
+`python scripts/import_attempts_json.py your_username`
+
+CLI: `python main.py` (still uses `data/problems.json` for the legacy flow).
 
 ## Project layout
 
 ```
 app.py              # Flask + routes
+auth.py             # /api/auth (register, login, logout, me)
+extensions.py       # db, login_manager, csrf
+models.py           # User, Attempt
 main.py             # CLI
 templates/          # index.html
 static/             # app.js, style.css
-utils/              # catalog, storage, time parsing
+utils/              # catalog, storage (legacy JSON), storage_db (attempts), time parsing
 problems/           # optional: per-problem JSON dumps (topics, description, …)
-data/               # attempts.json, blind75.json, problem_topics.json, …
-leetcode.json       # catalog export (root)
+data/               # leetcode.json, blind75.json, problem_topics.json, leetcodetracker.db, …
+scripts/            # import_attempts_json, build_problem_topics_from_problems, …
 ```
 
 **Topic tags:** If you have a `problems/` folder of LeetCode JSON files, regenerate `data/problem_topics.json` (skips SQL-only and Shell-only problems):
@@ -48,13 +63,22 @@ leetcode.json       # catalog export (root)
 
 ## Deploy (e.g. Railway)
 
-Use a production server, not `python app.py`:
+Use a production server, not `python app.py`. The repo includes a **`Procfile`** so platforms like Railway can start with:
 
 ```bash
 gunicorn app:app --bind 0.0.0.0:$PORT
 ```
 
-Mount **persistent storage** on `data/` if you want `attempts.json` to survive redeploys. There is **no login** yet—a public URL shares one `attempts.json` for everyone unless you add auth.
+(`$PORT` is set by the host.) Install deps with `pip install -r requirements.txt` (includes **gunicorn**).
+
+**Environment variables**
+
+- **`SECRET_KEY`** — required for secure sessions (set a long random string).
+- **`DATABASE_URL`** — optional; if unset, SQLite is used at `data/leetcodetracker.db`. On Railway, add a **PostgreSQL** plugin and use its `DATABASE_URL` (the app normalizes `postgres://` to `postgresql://`).
+
+Mount **persistent storage** on **`data/`** so the SQLite file (or any local JSON) survives redeploys, **or** use Postgres only and ensure `data/leetcode.json` (and related files) are present via the image or a volume.
+
+With **SQLite**, use **one** Gunicorn worker, or switch to Postgres for multiple workers.
 
 ## Screenshots
 
@@ -68,7 +92,7 @@ Mount **persistent storage** on `data/` if you want `attempts.json` to survive r
 
 ## Ideas
 
-Auth + per-user data, charts, CSV export, LeetCode import helper, tests.
+Charts, CSV export, LeetCode import helper, tests.
 
 ## Author
 

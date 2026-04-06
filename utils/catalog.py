@@ -3,7 +3,7 @@ import json
 import os
 
 _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-DEFAULT_CATALOG_PATH = os.path.join(_ROOT, "leetcode.json")
+DEFAULT_CATALOG_PATH = os.path.join(_ROOT, "data", "leetcode.json")
 TOPICS_PATH = os.path.join(_ROOT, "data", "problem_topics.json")
 BLIND_75_PATH = os.path.join(_ROOT, "data", "blind75.json")
 

@@ -5,6 +5,7 @@ __pycache__/
 .vscode/
 .DS_Store
 data/problems.json
+data/leetcodetracker.db
 # Ignore Python cache files
 __pycache__/
 
