@@ -2,7 +2,7 @@
 
 Web app for tracking LeetCode practice: browse a catalog from a `leetcode.json` export, log attempts (time, approach, solved, notes), filter attempts by topic and text, and view simple stats. Optional **Blind 75** list and topic tags. There’s also a small **CLI** (`main.py`) for a manual problem list.
 
-I built it to stay accountable while grinding problems and to practice Python, Flask, and plain HTML/CSS/JS.
+I built it to stay accountable while grinding problems and to practice Python, Flask, and plain HTML/CSS/JS. A popular suggestion I always hear from content creators to track leetcode progress and track attempt info(number of attempts and time taken). Most of them recomment using an except spreadsheet to sort the problems and log attempt data but i believe a site like this is a better alternative.
 
 ## Features
 
@@ -98,6 +98,9 @@ Charts, CSV export, LeetCode import helper, tests.
 
 **Nvafeomo K. Konneh**
 
+- **Email:** [nvafeomo05@gmail.com](mailto:nvafeomo05@gmail.com)
+- **Phone:** 267-461-8268
+- **LinkedIn:** [Nvafeomo Konneh](https://www.linkedin.com/in/nvafeomo-konneh-a6a1a9367)
 ## License
 
 MIT
