@@ -72,6 +72,20 @@ body {
   line-height: 1.4;
 }
 
+.attempts-toolbar {
+  margin-bottom: 0.5rem;
+}
+
+.attempts-toolbar .search-input {
+  min-width: 140px;
+}
+
+.approach-cell {
+  max-width: 220px;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
 .catalog-wrap {
   overflow-x: auto;
   border: 1px solid var(--border);
@@ -164,6 +178,57 @@ body {
   margin-right: auto;
 }
 
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.page-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.page-jump-label {
+  white-space: nowrap;
+}
+
+.page-jump-input {
+  width: 3.5rem;
+  padding: 0.45rem 0.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.page-jump-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.page-jump-input::-webkit-outer-spin-button,
+.page-jump-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.page-jump-input[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.page-jump-of {
+  white-space: nowrap;
+}
+
 .pagination button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -198,18 +263,6 @@ body {
   margin-bottom: 0.5rem;
   font-size: 0.95rem;
   cursor: pointer;
-}
-
-.stat-hint {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin-bottom: 0.75rem;
-}
-
-.stat-hint code {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.72rem;
 }
 
 .header {
@@ -440,7 +493,7 @@ body {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
 }
 

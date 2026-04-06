@@ -16,8 +16,10 @@ from utils.storage import (
     append_attempt,
     delete_attempt,
     get_attempts_for_problem,
+    list_attempts_filtered,
     search_attempts_by_approach,
     time_stats_for_problem,
+    catalog_fastest_by_difficulty,
     catalog_fastest_hard_problems,
     catalog_slowest_tags,
 )
@@ -124,8 +126,27 @@ def api_delete_attempt(problem_id, attempt):
     return jsonify({"success": True})
 
 
+@app.route("/api/attempts", methods=["GET"])
+def api_list_attempts():
+    """
+    Flat list of attempts with problem metadata. Query params (all optional, substring match):
+      title    — problem title
+      topic    — any topic tag
+      approach — approach or reflection text
+    """
+    title = request.args.get("title", "")
+    topic = request.args.get("topic", "")
+    approach = request.args.get("approach", "")
+    cmap = _get_catalog_map()
+    rows = list_attempts_filtered(
+        cmap, title_q=title, topic_q=topic, approach_q=approach
+    )
+    return jsonify(rows)
+
+
 @app.route("/api/search", methods=["GET"])
 def api_search():
+    """Legacy: grouped by problem; approach keyword only. Prefer GET /api/attempts."""
     keyword = request.args.get("q", "")
     cmap = _get_catalog_map()
     results = search_attempts_by_approach(keyword, cmap)
@@ -141,13 +162,24 @@ def api_time_stats(problem_id):
     return jsonify(stats)
 
 
+def _fastest_json(rows):
+    return jsonify([{"title": t, "id": pid, "minutes": m} for t, pid, m in rows])
+
+
 @app.route("/api/stats/fastest-hard")
 def api_fastest_hard():
     cmap = _get_catalog_map()
-    rows = catalog_fastest_hard_problems(cmap)
-    return jsonify(
-        [{"title": t, "id": pid, "minutes": m} for t, pid, m in rows]
-    )
+    return _fastest_json(catalog_fastest_hard_problems(cmap))
+
+
+@app.route("/api/stats/fastest")
+def api_fastest_by_query():
+    """GET /api/stats/fastest?difficulty=easy|medium|hard — fastest first timed attempt per difficulty."""
+    d = (request.args.get("difficulty") or "").strip().lower()
+    if d not in ("easy", "medium", "hard"):
+        return jsonify({"error": "difficulty must be easy, medium, or hard"}), 400
+    cmap = _get_catalog_map()
+    return _fastest_json(catalog_fastest_by_difficulty(cmap, d))
 
 
 @app.route("/api/stats/slowest-categories")

@@ -7,4 +7,5 @@ __pycache__/
 data/problems.json
 # Ignore Python cache files
 __pycache__/
-docs/
+
+personal/

@@ -102,6 +102,59 @@ def search_attempts_by_approach(keyword, catalog_by_id, filepath=None):
     return out
 
 
+def _parse_attempt_timestamp(s):
+    if not s:
+        return datetime.min
+    try:
+        return datetime.strptime(str(s).strip(), "%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return datetime.min
+
+
+def list_attempts_filtered(
+    catalog_by_id, title_q="", topic_q="", approach_q="", filepath=None
+):
+    """
+    Flat list of attempts with problem metadata. Filters are substring matches (case-insensitive).
+    Empty filter means no filter for that dimension.
+    Sorted by attempt timestamp descending (newest first).
+    """
+    title_q = (title_q or "").strip().lower()
+    topic_q = (topic_q or "").strip().lower()
+    approach_q = (approach_q or "").strip().lower()
+    all_a = load_attempts(filepath)
+    rows = []
+    for pid, entry in all_a.items():
+        meta = catalog_by_id.get(pid)
+        if not meta:
+            continue
+        if title_q and title_q not in (meta.get("title") or "").lower():
+            continue
+        tags = meta.get("tags") or []
+        if topic_q:
+            if not any(topic_q in (t or "").lower() for t in tags):
+                continue
+        for n in entry.get("attempts") or []:
+            ap = (n.get("approach") or "").lower()
+            ref = (n.get("reflection") or "").lower()
+            if approach_q and approach_q not in ap and approach_q not in ref:
+                continue
+            rows.append(
+                {
+                    "problem_id": meta["id"],
+                    "title": meta["title"],
+                    "difficulty": meta["difficulty"],
+                    "tags": tags,
+                    "attempt": n,
+                }
+            )
+    rows.sort(
+        key=lambda r: _parse_attempt_timestamp((r.get("attempt") or {}).get("timestamp")),
+        reverse=True,
+    )
+    return rows
+
+
 # --- Legacy CLI: data/problems.json (list of free-form problems) ---
 
 PROBLEMS_LEGACY_FILE = os.path.join(_ROOT, "data", "problems.json")
@@ -196,21 +249,29 @@ def time_stats_for_problem(problem_id, filepath=None):
     return _time_stats_from_notes(notes)
 
 
-def catalog_fastest_hard_problems(catalog_by_id, filepath=None, top_n=5):
-    """List of (title, problem_id, minutes) for fastest first timed hard attempt."""
+def catalog_fastest_by_difficulty(catalog_by_id, difficulty, filepath=None, top_n=5):
+    """List of (title, problem_id, minutes) for fastest first timed attempt at given difficulty."""
+    diff_lower = (difficulty or "").strip().lower()
+    if diff_lower not in ("easy", "medium", "hard"):
+        return []
     all_a = load_attempts(filepath)
-    hard_rows = []
+    rows = []
     for pid, entry in all_a.items():
         meta = catalog_by_id.get(pid)
-        if not meta or meta.get("difficulty", "").lower() != "hard":
+        if not meta or meta.get("difficulty", "").lower() != diff_lower:
             continue
         for note in entry.get("attempts") or []:
             time_minutes = parse_time(note.get("time_spent", ""))
             if time_minutes is not None:
-                hard_rows.append((meta["title"], int(pid), time_minutes))
+                rows.append((meta["title"], int(pid), time_minutes))
                 break
-    hard_rows.sort(key=lambda x: x[2])
-    return [(t, pid, m) for t, pid, m in hard_rows[:top_n]]
+    rows.sort(key=lambda x: x[2])
+    return [(t, pid, m) for t, pid, m in rows[:top_n]]
+
+
+def catalog_fastest_hard_problems(catalog_by_id, filepath=None, top_n=5):
+    """List of (title, problem_id, minutes) for fastest first timed hard attempt."""
+    return catalog_fastest_by_difficulty(catalog_by_id, "hard", filepath, top_n)
 
 
 def catalog_slowest_tags(catalog_by_id, filepath=None):

@@ -8,7 +8,7 @@ I built it to stay accountable while grinding problems and to practice Python, F
 
 - Catalog with sort, title filter, pagination; optional **Blind 75** (`data/blind75.json`)
 - Per-problem attempts + optional **topic tags** (`data/problem_topics.json`)
-- Search attempts by keyword; stats (fastest hards, topic times, per-problem time)
+- **Attempts** tab: all attempts with optional filters by problem name, topic, and approach/reflection; stats (fastest first attempt per difficulty, topic times, per-problem time)
 - JSON **API** under `/api/…` (same app powers the UI)
 
 ## Stack
@@ -37,9 +37,14 @@ main.py             # CLI
 templates/          # index.html
 static/             # app.js, style.css
 utils/              # catalog, storage, time parsing
+problems/           # optional: per-problem JSON dumps (topics, description, …)
 data/               # attempts.json, blind75.json, problem_topics.json, …
 leetcode.json       # catalog export (root)
 ```
+
+**Topic tags:** If you have a `problems/` folder of LeetCode JSON files, regenerate `data/problem_topics.json` (skips SQL-only and Shell-only problems):
+
+`python scripts/build_problem_topics_from_problems.py`
 
 ## Deploy (e.g. Railway)
 
@@ -53,7 +58,13 @@ Mount **persistent storage** on `data/` if you want `attempts.json` to survive r
 
 ## Screenshots
 
-Add a few images or a GIF here (catalog, attempt modal, stats).
+| Catalog | Attempts |
+| --- | --- |
+| ![Catalog](docs/screenshots/catalog.png) | ![Attempts](docs/screenshots/attempts.png) |
+
+| Problem / attempt log | Stats |
+| --- | --- |
+| ![Attempt log](docs/screenshots/attemptlog.png) | ![Stats](docs/screenshots/stats.png) |
 
 ## Ideas
 

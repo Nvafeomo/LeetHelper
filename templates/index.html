@@ -18,7 +18,7 @@
 
     <nav class="tabs">
       <button type="button" class="tab active" data-tab="catalog">Catalog</button>
-      <button type="button" class="tab" data-tab="search">Search attempts</button>
+      <button type="button" class="tab" data-tab="attempts">Attempts</button>
       <button type="button" class="tab" data-tab="stats">Stats</button>
     </nav>
 
@@ -61,23 +61,51 @@
         <div class="pagination" id="catalogPagination"></div>
       </section>
 
-      <section id="search" class="panel">
-        <div class="panel-header">
-          <input type="text" id="approachSearch" class="search-input" placeholder="Search notes by approach keyword (e.g. DP, greedy)…">
-          <button type="button" id="searchAttemptsBtn" class="btn btn-secondary">Search</button>
+      <section id="attempts" class="panel">
+        <div class="toolbar attempts-toolbar">
+          <input type="search" id="attemptsTitleFilter" class="search-input" placeholder="Problem name…" autocomplete="off" title="Filter by problem title">
+          <select id="attemptsTopicFilter" class="select-input" title="Topic tag">
+            <option value="">All topics</option>
+          </select>
+          <input type="search" id="attemptsApproachFilter" class="search-input" placeholder="Approach or reflection…" autocomplete="off" title="Filter by text in approach or reflection">
         </div>
-        <div id="searchResults" class="problems-list"></div>
+        <p class="hint" id="attemptsHint"></p>
+        <div class="catalog-wrap attempts-wrap">
+          <table class="catalog-table attempts-table" id="attemptsTable">
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>#</th>
+                <th>Problem</th>
+                <th>Difficulty</th>
+                <th>Topics</th>
+                <th>Att</th>
+                <th>Time</th>
+                <th>Approach</th>
+                <th>Solved</th>
+              </tr>
+            </thead>
+            <tbody id="attemptsBody"></tbody>
+          </table>
+        </div>
       </section>
 
       <section id="stats" class="panel">
         <div class="stats-grid">
           <div class="stat-card">
+            <h3>Fastest easy (first timed attempt)</h3>
+            <ul id="fastestEasy"></ul>
+          </div>
+          <div class="stat-card">
+            <h3>Fastest medium (first timed attempt)</h3>
+            <ul id="fastestMedium"></ul>
+          </div>
+          <div class="stat-card">
             <h3>Fastest hard (first timed attempt)</h3>
             <ul id="fastestHard"></ul>
           </div>
-          <div class="stat-card">
+          <div class="stat-card full-width">
             <h3>Most time — by topic</h3>
-            <span class="stat-hint">Uses first topic tag; add <code>data/problem_topics.json</code> to label rows.</span>
             <ul id="slowestCategories"></ul>
           </div>
         </div>

@@ -9,6 +9,11 @@ const state = {
   tag: '',
   /** 'all' | 'blind75' — sent as GET /api/catalog?list=… */
   list: 'all',
+  /** last /api/catalog total (for page jump) */
+  catalogTotal: 0,
+  attemptsTitle: '',
+  attemptsTopic: '',
+  attemptsApproach: '',
 };
 
 function showToast(message, type = 'success') {
@@ -47,6 +52,10 @@ document.querySelectorAll('.tab').forEach((tab) => {
     tab.classList.add('active');
     document.getElementById(tab.dataset.tab).classList.add('active');
     if (tab.dataset.tab === 'catalog') loadCatalog();
+    if (tab.dataset.tab === 'attempts') {
+      loadAttemptsTags();
+      loadAttempts();
+    }
     if (tab.dataset.tab === 'stats') loadStats();
   });
 });
@@ -148,18 +157,60 @@ async function loadCatalog() {
     }
 
     const total = data.total ?? 0;
+    state.catalogTotal = total;
     const end = Math.min(state.offset + state.limit, total);
     const prevDisabled = state.offset <= 0;
-    const nextDisabled = state.offset + state.limit >= total;
+    const nextDisabled = total === 0 || state.offset + state.limit >= total;
+    const totalPages = total === 0 ? 0 : Math.ceil(total / state.limit);
+    const currentPage = total === 0 ? 1 : Math.floor(state.offset / state.limit) + 1;
+
+    const jumpBlock =
+      totalPages > 0
+        ? `
+      <label class="page-jump">
+        <span class="page-jump-label">Page</span>
+        <input type="number" class="page-jump-input" id="catalogPageInput" min="1" max="${totalPages}" value="${currentPage}" aria-label="Page number" />
+        <span class="page-jump-of">of ${totalPages}</span>
+      </label>
+      <button type="button" class="btn btn-secondary" id="catalogPageGo">Go</button>
+    `
+        : '';
+
     pag.innerHTML = `
       <span class="page-info">${total ? state.offset + 1 : 0}–${end} of ${total}</span>
-      <button type="button" class="btn btn-secondary" id="prevPage" ${prevDisabled ? 'disabled' : ''}>Previous</button>
-      <button type="button" class="btn btn-secondary" id="nextPage" ${nextDisabled ? 'disabled' : ''}>Next</button>
+      <div class="pagination-controls">
+        <button type="button" class="btn btn-secondary" id="prevPage" ${prevDisabled ? 'disabled' : ''}>Previous</button>
+        ${jumpBlock}
+        <button type="button" class="btn btn-secondary" id="nextPage" ${nextDisabled ? 'disabled' : ''}>Next</button>
+      </div>
     `;
+
     const prev = document.getElementById('prevPage');
     const next = document.getElementById('nextPage');
     if (prev && !prevDisabled) prev.onclick = () => { state.offset = Math.max(0, state.offset - state.limit); loadCatalog(); };
     if (next && !nextDisabled) next.onclick = () => { state.offset = state.offset + state.limit; loadCatalog(); };
+
+    const pageInput = document.getElementById('catalogPageInput');
+    const goBtn = document.getElementById('catalogPageGo');
+    const applyPageJump = () => {
+      const t = state.catalogTotal;
+      const tp = t === 0 ? 0 : Math.ceil(t / state.limit);
+      if (!pageInput || tp < 1) return;
+      let p = parseInt(pageInput.value, 10);
+      if (Number.isNaN(p)) p = 1;
+      p = Math.max(1, Math.min(tp, p));
+      state.offset = (p - 1) * state.limit;
+      loadCatalog();
+    };
+    if (pageInput && goBtn) {
+      goBtn.onclick = applyPageJump;
+      pageInput.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') {
+          ev.preventDefault();
+          applyPageJump();
+        }
+      });
+    }
   } catch (e) {
     tbody.innerHTML = `<tr><td colspan="4" class="empty-cell">Error: ${escapeHtml(e.message)}</td></tr>`;
     pag.innerHTML = '';
@@ -245,7 +296,8 @@ async function openProblemModal(problemId) {
             method: 'DELETE',
           });
           showToast('Attempt deleted');
-          openProblemModal(id);
+          await openProblemModal(id);
+          if (document.getElementById('attempts')?.classList.contains('active')) loadAttempts();
         } catch (err) {
           showToast(err.message, 'error');
         }
@@ -272,7 +324,8 @@ async function openProblemModal(problemId) {
           }),
         });
         showToast('Attempt saved');
-        openProblemModal(id);
+        await openProblemModal(id);
+        if (document.getElementById('attempts')?.classList.contains('active')) loadAttempts();
       } catch (err) {
         showToast(err.message, 'error');
       }
@@ -292,59 +345,154 @@ document.getElementById('problemModal').addEventListener('click', (e) => {
   if (e.target.id === 'problemModal') e.target.classList.remove('active');
 });
 
-document.getElementById('searchAttemptsBtn').addEventListener('click', async () => {
-  const q = document.getElementById('approachSearch').value.trim();
-  const el = document.getElementById('searchResults');
-  if (!q) {
-    el.innerHTML = '<div class="empty-state">Enter a keyword.</div>';
-    return;
-  }
+function buildAttemptsQuery() {
+  const params = new URLSearchParams();
+  if (state.attemptsTitle) params.set('title', state.attemptsTitle);
+  if (state.attemptsTopic) params.set('topic', state.attemptsTopic);
+  if (state.attemptsApproach) params.set('approach', state.attemptsApproach);
+  return params.toString();
+}
+
+async function loadAttemptsTags() {
+  const sel = document.getElementById('attemptsTopicFilter');
+  const hint = document.getElementById('attemptsHint');
+  if (!sel) return;
   try {
-    const results = await fetchJson(`${API}/search?q=${encodeURIComponent(q)}`);
-    if (results.length === 0) {
-      el.innerHTML = '<div class="empty-state">No matching attempts.</div>';
+    const tags = await fetchJson(`${API}/catalog/tags`);
+    sel.innerHTML = '<option value="">All topics</option>';
+    tags.forEach((t) => {
+      const opt = document.createElement('option');
+      opt.value = t;
+      opt.textContent = t;
+      sel.appendChild(opt);
+    });
+    sel.value = state.attemptsTopic;
+    hint.textContent = tags.length
+      ? ''
+      : 'Add topic tags in data/problem_topics.json to filter by topic.';
+  } catch (e) {
+    hint.textContent = '';
+  }
+}
+
+function truncateText(s, max) {
+  if (s == null || s === '') return '—';
+  const t = String(s);
+  if (t.length <= max) return t;
+  return `${t.slice(0, max)}…`;
+}
+
+async function loadAttempts() {
+  const tbody = document.getElementById('attemptsBody');
+  if (!tbody) return;
+  try {
+    const q = buildAttemptsQuery();
+    const rows = await fetchJson(`${API}/attempts${q ? `?${q}` : ''}`);
+    if (rows.length === 0) {
+      tbody.innerHTML =
+        '<tr><td colspan="9" class="empty-cell">No attempts yet, or nothing matches your filters.</td></tr>';
       return;
     }
-    el.innerHTML = results
-      .map((p) => {
-        const diff = (p.difficulty || '').toLowerCase();
-        const diffClass = diff === 'easy' || diff === 'medium' || diff === 'hard' ? diff : '';
+    tbody.innerHTML = rows
+      .map((row) => {
+        const a = row.attempt || {};
+        const diff = (row.difficulty || '').toLowerCase();
+        const diffClass =
+          diff === 'easy' || diff === 'medium' || diff === 'hard' ? diff : '';
+        const tags = (row.tags || [])
+          .slice(0, 3)
+          .map((t) => `<span class="tag-chip">${escapeHtml(t)}</span>`)
+          .join(' ');
+        const pid = row.problem_id;
+        const approach = truncateText(a.approach || '', 100);
         return `
-        <div class="problem-card" data-id="${p.id}">
-          <div class="title">${escapeHtml(p.title)} <span class="mono">#${p.id}</span></div>
-          <div class="meta">
-            <span class="difficulty ${diffClass}">${escapeHtml(p.difficulty)}</span>
-            <span>${(p.notes || []).length} matching note(s)</span>
-          </div>
-        </div>`;
+          <tr class="attempts-row catalog-row" data-id="${pid}" tabindex="0">
+            <td class="mono text-muted">${escapeHtml(a.timestamp || '—')}</td>
+            <td class="mono">${pid}</td>
+            <td class="title-cell">${escapeHtml(row.title || '')}</td>
+            <td><span class="difficulty ${diffClass}">${escapeHtml(row.difficulty || '')}</span></td>
+            <td class="tags-cell">${tags || '<span class="text-muted">—</span>'}</td>
+            <td class="mono">${escapeHtml(String(a.attempt ?? '—'))}</td>
+            <td>${escapeHtml(a.time_spent || '—')}</td>
+            <td class="approach-cell">${escapeHtml(approach)}</td>
+            <td>${a.solved ? 'Yes' : 'No'}</td>
+          </tr>`;
       })
       .join('');
-    el.querySelectorAll('.problem-card').forEach((card) => {
-      card.addEventListener('click', () => openProblemModal(card.dataset.id));
+    tbody.querySelectorAll('.attempts-row').forEach((r) => {
+      const id = r.dataset.id;
+      r.addEventListener('click', () => openProblemModal(id));
+      r.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault();
+          openProblemModal(id);
+        }
+      });
     });
   } catch (e) {
-    el.innerHTML = `<div class="empty-state">${escapeHtml(e.message)}</div>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="empty-cell">Error: ${escapeHtml(e.message)}</td></tr>`;
   }
+}
+
+let attemptsDebounce;
+function scheduleLoadAttempts() {
+  clearTimeout(attemptsDebounce);
+  attemptsDebounce = setTimeout(() => loadAttempts(), 300);
+}
+
+document.getElementById('attemptsTitleFilter').addEventListener('input', (e) => {
+  state.attemptsTitle = e.target.value.trim();
+  scheduleLoadAttempts();
+});
+document.getElementById('attemptsTopicFilter').addEventListener('change', (e) => {
+  state.attemptsTopic = e.target.value;
+  loadAttempts();
+});
+document.getElementById('attemptsApproachFilter').addEventListener('input', (e) => {
+  state.attemptsApproach = e.target.value.trim();
+  scheduleLoadAttempts();
 });
 
+function renderFastestRows(items, emptyLabel) {
+  if (items.length === 0) return `<li>${emptyLabel}</li>`;
+  return items
+    .map((x) => `<li>${escapeHtml(x.title)} (#${x.id}) → ${x.minutes} min</li>`)
+    .join('');
+}
+
 async function loadStats() {
+  const emptyErr = (id, msg) => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = `<li>${escapeHtml(msg)}</li>`;
+  };
   try {
-    const [fastest, slowest] = await Promise.all([
-      fetchJson(`${API}/stats/fastest-hard`),
+    const [easy, medium, hard, slowest] = await Promise.all([
+      fetchJson(`${API}/stats/fastest?difficulty=easy`),
+      fetchJson(`${API}/stats/fastest?difficulty=medium`),
+      fetchJson(`${API}/stats/fastest?difficulty=hard`),
       fetchJson(`${API}/stats/slowest-categories`),
     ]);
-    const fastestEl = document.getElementById('fastestHard');
-    const slowestEl = document.getElementById('slowestCategories');
-    fastestEl.innerHTML =
-      fastest.length === 0
-        ? '<li>No hard problems with time data yet.</li>'
-        : fastest.map((x) => `<li>${escapeHtml(x.title)} (#${x.id}) → ${x.minutes} min</li>`).join('');
-    slowestEl.innerHTML =
+    document.getElementById('fastestEasy').innerHTML = renderFastestRows(
+      easy,
+      'No easy problems with time data yet.',
+    );
+    document.getElementById('fastestMedium').innerHTML = renderFastestRows(
+      medium,
+      'No medium problems with time data yet.',
+    );
+    document.getElementById('fastestHard').innerHTML = renderFastestRows(
+      hard,
+      'No hard problems with time data yet.',
+    );
+    document.getElementById('slowestCategories').innerHTML =
       slowest.length === 0
         ? '<li>No topic data yet.</li>'
         : slowest.map((x) => `<li>${escapeHtml(x.category)}: ${x.avg_minutes} min (avg)</li>`).join('');
   } catch (e) {
-    document.getElementById('fastestHard').innerHTML = `<li>Error: ${escapeHtml(e.message)}</li>`;
+    const msg = `Error: ${e.message}`;
+    emptyErr('fastestEasy', msg);
+    emptyErr('fastestMedium', msg);
+    emptyErr('fastestHard', msg);
     document.getElementById('slowestCategories').innerHTML = '';
   }
 }
