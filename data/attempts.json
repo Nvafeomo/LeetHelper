@@ -1,1 +1,14 @@
-{}
+{
+  "1": {
+    "attempts": [
+      {
+        "time_spent": "7 minutes",
+        "approach": "two pointer",
+        "reflection": "Took a bit longer than I would have hoped but overall a good attempt",
+        "solved": true,
+        "attempt": "1",
+        "timestamp": "2026-04-06 12:57:40"
+      }
+    ]
+  }
+}
