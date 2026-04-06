@@ -22,18 +22,6 @@ The web UI loads all problems from `leetcode.json` with title and difficulty. So
 
 Stats include fastest hard solves (with problem number), average time by topic when you have topics, and per-problem time summaries.
 
-### Optional topic tags
-
-The default export has no tags. For topic filtering and richer category stats, add `data/problem_topics.json`: a JSON object mapping each problem’s slug to a list of tag strings:
-
-```json
-{
-  "two-sum": ["Array", "Hash Table"],
-  "number-of-islands": ["Array", "Depth-First Search", "Breadth-First Search", "Union Find", "Matrix"]
-}
-```
-
-Slugs must match `question__title_slug` in the catalog. Use `{}` until you add entries.
 
 ## Project layout
 
