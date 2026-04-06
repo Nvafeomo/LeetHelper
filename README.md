@@ -29,11 +29,16 @@ Interview prep on LeetCode is easy to start and hard to keep honest. I wanted a 
 - **Frontend:** Vanilla JavaScript (`static/app.js`) calls the API with `fetch`; styling in `static/style.css`. No React—keeps the stack small.
 - **Data:** No database in the current version. Problem metadata comes from `leetcode.json`; your logged attempts live in **`data/attempts.json`**. Optional tags and Blind 75 ids are JSON files under `data/`.
 
+<<<<<<< HEAD
 **Flow:** Browser → Flask routes → read/write JSON + in-memory catalog cache → JSON responses → JS updates the table, modal, search, and stats.
 
 ---
 
 ## Project structure
+=======
+
+## Project layout
+>>>>>>> b3763b824e038051a4d09b9f4d0819645f6a5d91
 
 ```
 LeetTracker/
